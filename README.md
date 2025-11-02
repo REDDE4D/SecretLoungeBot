@@ -475,7 +475,6 @@ Users have three status states:
 - **🟡 Idle**: No activity for 15 minutes
 - **⚫ Offline**: No activity for 60 minutes
 
-Status changes are automatically announced to all lobby members.
 
 ### Media Support
 
@@ -580,21 +579,17 @@ SecretLoungeBot/
 │   │   ├── logger.js
 │   │   ├── pagination.js
 │   │   └── timeUtils.js
-│   ├── metrics/                # Anonymous metrics (optional)
-│   │   ├── collect.js
-│   │   └── sender.js
-│   └── scripts/
-│       └── import.js           # Legacy data import
+│   └── metrics/                # Anonymous metrics (optional)
+│       ├── collect.js
+│       └── sender.js
 ├── logs/                       # Generated log files
 │   ├── combined.log
 │   ├── error.log
 │   ├── exceptions.log
 │   └── rejections.log
-├── .env                        # Environment configuration
 ├── .env.example               # Example environment file
 ├── package.json               # Dependencies & scripts
 ├── CHANGELOG.md              # Version history
-├── CLAUDE.md                 # Development guidance
 └── README.md                 # This file
 ```
 
