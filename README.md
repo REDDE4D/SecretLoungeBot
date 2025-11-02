@@ -1,4 +1,4 @@
-# 🎭 TG-Lobby-Bot (SecretLoungeBot)
+# 🎭 SecretLoungeBot (Telegram Lobby Bot)
 
 > An anonymous Telegram chat lobby bot that enables users to communicate anonymously through customizable aliases and emoji avatars.
 
@@ -32,7 +32,7 @@
 
 ## 🎯 Overview
 
-**TG-Lobby-Bot** creates an anonymous chat lobby in Telegram where users can communicate without revealing their identity. Users register with custom aliases and emoji avatars, join a shared lobby, and send messages that are relayed to all other members while preserving complete anonymity.
+**SecretLoungeBot** creates an anonymous chat lobby in Telegram where users can communicate without revealing their identity. Users register with custom aliases and emoji avatars, join a shared lobby, and send messages that are relayed to all other members while preserving complete anonymity.
 
 ### Key Features
 
