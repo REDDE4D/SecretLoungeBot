@@ -50,3 +50,5 @@ tmp/
 # Generated documentation
 docs//api/  
 PROGRESS.md
+Dashboard.md
+package-lock.json
