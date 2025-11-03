@@ -1,6 +1,7 @@
 import { getAlias, addWarning, clearWarnings, banUser } from "../../users/index.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["warn", "clearwarns"],
@@ -23,6 +24,8 @@ export function register(bot) {
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);
 
+      logger.logModeration("warn", ctx.from.id, userId, { warnCount });
+
       ctx.reply(`⚠️ Warning issued to *${aliasEscaped}*. (${warnCount}/3)`, {
         parse_mode: "MarkdownV2",
       });
@@ -30,6 +33,7 @@ export function register(bot) {
       // Auto-ban on 3 warnings
       if (warnCount >= 3) {
         await banUser(userId);
+        logger.logModeration("auto_ban", ctx.from.id, userId, { reason: "3 warnings" });
         ctx.reply(
           `❌ User *${aliasEscaped}* has been permanently banned (3 warnings).`,
           { parse_mode: "MarkdownV2" }
@@ -52,6 +56,8 @@ export function register(bot) {
       await clearWarnings(userId);
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);
+
+      logger.logModeration("clear_warnings", ctx.from.id, userId);
 
       ctx.reply(`🧽 Warnings cleared for *${aliasEscaped}*.`, {
         parse_mode: "MarkdownV2",

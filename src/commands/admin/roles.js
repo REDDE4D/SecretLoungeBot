@@ -1,6 +1,7 @@
 import { getAlias, setRole } from "../../users/index.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["promote", "demote"],
@@ -35,6 +36,8 @@ export function register(bot) {
 
       const result = await setRole(userId, roleName);
 
+      logger.logModeration("promote", ctx.from.id, userId, { role: roleName });
+
       ctx.reply(escapeMarkdownV2(result), { parse_mode: "MarkdownV2" });
     } catch (err) {
       ctx.reply(escapeMarkdownV2(err.message || "❌ Could not resolve user."), {
@@ -51,6 +54,8 @@ export function register(bot) {
 
       const userId = await resolveTargetUser(ctx, aliasOrNothing);
       const result = await setRole(userId, null);
+
+      logger.logModeration("demote", ctx.from.id, userId);
 
       ctx.reply(escapeMarkdownV2(result), { parse_mode: "MarkdownV2" });
     } catch (err) {

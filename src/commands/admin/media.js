@@ -1,6 +1,7 @@
 import { getAlias, getAllAliases, restrictMedia, unrestrictMedia } from "../../users/index.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["restrictmedia", "rm", "unrestrictmedia", "urm", "debugmedia", "debuglist", "debugcopy"],
@@ -23,6 +24,8 @@ export function register(bot) {
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);
 
+      logger.logModeration("restrict_media", ctx.from.id, userId);
+
       ctx.reply(`📵 *${aliasEscaped}* is now restricted from sending media.`, {
         parse_mode: "MarkdownV2",
       });
@@ -43,6 +46,8 @@ export function register(bot) {
       await unrestrictMedia(userId);
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);
+
+      logger.logModeration("unrestrict_media", ctx.from.id, userId);
 
       ctx.reply(`📨 *${aliasEscaped}* can now send media again.`, {
         parse_mode: "MarkdownV2",

@@ -2,6 +2,7 @@
 import { getLobbyUsers } from "../users/index.js";
 import RelayedMessage from "../models/RelayedMessage.js";
 import Block from "../models/Block.js";
+import { Preferences } from "../models/Preferences.js";
 import {
   linkRelay,
   findRelayedMessageId,
@@ -55,6 +56,15 @@ export async function relayStandardMessage(
     recipients = recipients.filter(uid => !blockedByUserIds.has(String(uid)));
   }
 
+  // Fetch preferences for all recipients (batch query for performance)
+  const prefsMap = new Map();
+  if (recipients.length > 0) {
+    const prefs = await Preferences.find({ userId: { $in: recipients } }).lean();
+    for (const pref of prefs) {
+      prefsMap.set(pref.userId, pref);
+    }
+  }
+
   // Calculate expiration for this message based on sender's compliance status
   const expiresAt = await calculateExpiresAt(senderId);
 
@@ -86,12 +96,19 @@ export async function relayStandardMessage(
   // Build header with icon and alias
   const header = `${renderIconHTML(senderIcon)} <b>${escapeHTML(senderAlias)}</b>`;
 
-  // Body/caption with header
-  const bodyText = hasText ? `${header}\n\n${escapeHTML(m.text)}` : null;
-  const caption = !hasText && m.caption ? `${header}\n\n${escapeHTML(m.caption)}` : header;
-
   for (const uid of recipients) {
     try {
+      // Get recipient's preferences
+      const recipientPrefs = prefsMap.get(String(uid));
+      const compactMode = recipientPrefs?.compactMode || false;
+
+      // Adjust spacing based on compact mode preference
+      const spacing = compactMode ? "\n" : "\n\n";
+
+      // Body/caption with header (personalized per recipient)
+      const bodyText = hasText ? `${header}${spacing}${escapeHTML(m.text)}` : null;
+      const caption = !hasText && m.caption ? `${header}${spacing}${escapeHTML(m.caption)}` : header;
+
       // Compute reply target per-recipient
       let reply_to_message_id = undefined;
       let linkFallbackHTML = "";

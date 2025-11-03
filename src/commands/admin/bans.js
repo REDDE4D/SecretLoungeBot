@@ -111,7 +111,7 @@ export function register(bot) {
         const aliasEscaped = escapeMarkdownV2(resolvedAlias);
         const durationEscaped = escapeMarkdownV2(duration);
 
-        logger.logModeration(ctx.from.id, "ban", userId, { duration });
+        logger.logModeration("ban", ctx.from.id, userId, { duration });
         return ctx.reply(`✅ Banned *${aliasEscaped}* for *${durationEscaped}*`, {
           parse_mode: "MarkdownV2",
         });
@@ -228,9 +228,15 @@ export function register(bot) {
         message += `\n\n⚠️ Could not resolve:\n${failed.map((f) => `• ${f.alias}`).join("\n")}`;
       }
 
-      logger.logModeration(ctx.from.id, "unban", successful.map((u) => u.userId).join(", "), {
-        count: unbanned.length,
-      });
+      logger.logModeration(
+        "bulk_unban",
+        ctx.from.id,
+        null,
+        {
+          count: unbanned.length,
+          userIds: successful.map((u) => u.userId),
+        }
+      );
 
       ctx.reply(message);
     } catch (err) {
@@ -302,10 +308,16 @@ export function register(bot) {
         message += `\n\n❌ Failed to ban:\n${failedBans.map((f) => `• ${f.alias}: ${f.reason}`).join("\n")}`;
       }
 
-      logger.logModeration(pending.adminId, "bulk_ban", pending.users.map((u) => u.userId).join(", "), {
-        count: banned.length,
-        duration: pending.durationStr,
-      });
+      logger.logModeration(
+        "bulk_ban",
+        pending.adminId,
+        null,
+        {
+          count: banned.length,
+          duration: pending.durationStr,
+          userIds: pending.users.map((u) => u.userId),
+        }
+      );
 
       pendingBulkBans.delete(confirmationId);
       await ctx.editMessageText(message);

@@ -83,8 +83,41 @@ logger.logRelay = (senderId, recipientCount, messageType) => {
   logger.info("Message relayed", { senderId, recipientCount, messageType });
 };
 
-logger.logModeration = (action, performedBy, targetUser, reason) => {
-  logger.warn("Moderation action", { action, performedBy, targetUser, reason });
+logger.logModeration = (action, performedBy, targetUser, details = {}) => {
+  // Log to file
+  logger.warn("Moderation action", { action, performedBy, targetUser, details });
+
+  // Log to database (fire-and-forget pattern - don't block command execution)
+  (async () => {
+    try {
+      // Dynamic imports to avoid circular dependencies
+      const { default: AuditLog } = await import("../models/AuditLog.js");
+      const { getAlias } = await import("../users/index.js");
+
+      // Get aliases at time of action
+      const moderatorAlias = await getAlias(performedBy);
+      const targetAlias = targetUser ? await getAlias(targetUser) : "";
+
+      // Create audit log entry
+      await AuditLog.create({
+        action,
+        moderatorId: String(performedBy),
+        moderatorAlias,
+        targetUserId: targetUser ? String(targetUser) : null,
+        targetAlias,
+        details,
+        reason: details.reason || "",
+      });
+    } catch (err) {
+      // Log error but don't throw - we don't want audit logging to break commands
+      logger.error("Failed to create audit log entry", {
+        error: err.message,
+        action,
+        performedBy,
+        targetUser,
+      });
+    }
+  })();
 };
 
 logger.logError = (context, error, additionalInfo = {}) => {

@@ -108,7 +108,7 @@ export function register(bot) {
         const duration = durationStr || "permanent";
         const aliasEscaped = escapeMarkdownV2(resolvedAlias);
 
-        logger.logModeration(ctx.from.id, "mute", userId, { duration });
+        logger.logModeration("mute", ctx.from.id, userId, { duration });
         return ctx.reply(`🔇 User *${aliasEscaped}* has been muted.`, {
           parse_mode: "MarkdownV2",
         });
@@ -225,9 +225,15 @@ export function register(bot) {
         message += `\n\n⚠️ Could not resolve:\n${failed.map((f) => `• ${f.alias}`).join("\n")}`;
       }
 
-      logger.logModeration(ctx.from.id, "unmute", successful.map((u) => u.userId).join(", "), {
-        count: unmuted.length,
-      });
+      logger.logModeration(
+        "bulk_unmute",
+        ctx.from.id,
+        null,
+        {
+          count: unmuted.length,
+          userIds: successful.map((u) => u.userId),
+        }
+      );
 
       ctx.reply(message);
     } catch (err) {
@@ -299,10 +305,16 @@ export function register(bot) {
         message += `\n\n❌ Failed to mute:\n${failedMutes.map((f) => `• ${f.alias}: ${f.reason}`).join("\n")}`;
       }
 
-      logger.logModeration(pending.adminId, "bulk_mute", pending.users.map((u) => u.userId).join(", "), {
-        count: muted.length,
-        duration: pending.durationStr,
-      });
+      logger.logModeration(
+        "bulk_mute",
+        pending.adminId,
+        null,
+        {
+          count: muted.length,
+          duration: pending.durationStr,
+          userIds: pending.users.map((u) => u.userId),
+        }
+      );
 
       pendingBulkMutes.delete(confirmationId);
       await ctx.editMessageText(message);

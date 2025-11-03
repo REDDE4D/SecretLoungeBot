@@ -2,6 +2,7 @@
 import { getLobbyUsers } from "../users/index.js";
 import RelayedMessage from "../models/RelayedMessage.js";
 import Block from "../models/Block.js";
+import { Preferences } from "../models/Preferences.js";
 import {
   linkRelay,
   findRelayedMessageId,
@@ -149,11 +150,27 @@ async function relayGroup(id, ctx, recipientsOverride) {
     recipients = recipients.filter(uid => !blockedByUserIds.has(String(uid)));
   }
 
+  // Fetch preferences for all recipients (batch query for performance)
+  const prefsMap = new Map();
+  if (recipients.length > 0) {
+    const prefs = await Preferences.find({ userId: { $in: recipients } }).lean();
+    for (const pref of prefs) {
+      prefsMap.set(pref.userId, pref);
+    }
+  }
+
   // Calculate expiration for this album based on sender's compliance status
   const expiresAt = await calculateExpiresAt(g.senderId);
 
   for (const uid of recipients) {
     try {
+      // Get recipient's preferences
+      const recipientPrefs = prefsMap.get(String(uid));
+      const compactMode = recipientPrefs?.compactMode || false;
+
+      // Adjust spacing based on compact mode preference
+      const spacing = compactMode ? "\n" : "\n\n";
+
       // Compute album reply target per-recipient
       let albumReplyTarget = undefined;
       if (g.repliedOriginal) {
@@ -180,7 +197,7 @@ async function relayGroup(id, ctx, recipientsOverride) {
         let cap = "";
         if (i === 0) {
           // First item: include header and caption (if any)
-          cap = item.caption ? `${header}\n\n${escapeHTML(item.caption)}` : header;
+          cap = item.caption ? `${header}${spacing}${escapeHTML(item.caption)}` : header;
         }
         const base = { caption: cap, parse_mode: "HTML" };
 

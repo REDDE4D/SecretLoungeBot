@@ -4,6 +4,7 @@ import { getAlias } from "../../users/index.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { paginate, buildPaginationKeyboard, getPaginationFooter, parsePageFromCallback } from "../../utils/pagination.js";
 import { formatTimeAgo } from "../../utils/timeFormat.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["reports", "viewreport", "resolve"],
@@ -195,6 +196,17 @@ export function register(bot) {
       report.resolutionNotes = notes;
 
       await report.save();
+
+      logger.logModeration(
+        action === "dismissed" ? "report_dismiss" : "report_resolve",
+        ctx.from.id,
+        report.reportedUserId,
+        {
+          reportId: String(report._id),
+          action,
+          notes,
+        }
+      );
 
       const resolverAlias = await getAlias(ctx.from.id);
       const reportedAlias = report.reportedAlias;

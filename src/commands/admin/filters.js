@@ -1,6 +1,7 @@
 // src/commands/admin/filters.js
 import Filter from "../../models/Filter.js";
 import { paginate, buildPaginationKeyboard, getPaginationFooter } from "../../utils/pagination.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["filter"],
@@ -95,6 +96,12 @@ async function handleAddFilter(ctx, args) {
     notes: notes || "",
   });
 
+  logger.logModeration("filter_add", ctx.from.id, null, {
+    filterId: String(filter._id),
+    pattern,
+    isRegex,
+  });
+
   await ctx.reply(
     `✅ Filter added (ID: ${filter._id})\n\n` +
       `Pattern: ${pattern}\n` +
@@ -173,6 +180,8 @@ async function handleRemoveFilter(ctx, args) {
     return ctx.reply("❌ Filter not found.");
   }
 
+  logger.logModeration("filter_remove", ctx.from.id, null, { filterId });
+
   await ctx.reply(`✅ Filter removed`);
 }
 
@@ -194,6 +203,11 @@ async function handleToggleFilter(ctx, args) {
 
   filter.active = !filter.active;
   await filter.save();
+
+  logger.logModeration("filter_toggle", ctx.from.id, null, {
+    filterId: String(filter._id),
+    active: filter.active,
+  });
 
   await ctx.reply(
     `${filter.active ? "✅" : "❌"} Filter ${filter.active ? "enabled" : "disabled"}\n\n` +

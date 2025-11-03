@@ -9,6 +9,11 @@ import { runAllCleanupTasks } from "./utils/cleanup.js";
 import { sendMetrics } from "./metrics/sender.js";
 import { escapeMarkdownV2 } from "./utils/sanitize.js";
 import logger from "./utils/logger.js";
+import * as spamHandler from "./handlers/spamHandler.js";
+import { checkExpiredPolls } from "./utils/pollExpiration.js";
+import cron from "node-cron";
+import ScheduledAnnouncement from "./models/ScheduledAnnouncement.js";
+import { sendScheduledAnnouncement } from "./commands/admin/schedule.js";
 
 // Validate required environment variables
 if (!process.env.ADMIN_ID) {
@@ -20,6 +25,9 @@ if (!process.env.ADMIN_ID) {
 await connectMongo();
 const ADMIN_ID = process.env.ADMIN_ID;
 const ERROR_NOTIFICATION_ID = process.env.ERROR_NOTIFICATION_ID || ADMIN_ID;
+
+// Initialize spam detection handler
+await spamHandler.initialize();
 
 // Register all command modules
 await setupCommands(bot);
@@ -158,6 +166,88 @@ function scheduleDailyMidnight(fn) {
 scheduleDailyMidnight(checkCompliance);
 scheduleDailyMidnight(runAllCleanupTasks);
 scheduleDailyMidnight(sendMetrics);
+
+// Check for expired polls every 5 minutes
+setInterval(checkExpiredPolls, 5 * 60 * 1000);
+// Run immediately on startup as well
+checkExpiredPolls();
+
+// Scheduled announcements checker
+async function checkScheduledAnnouncements() {
+  try {
+    // Check for one-time announcements that are due
+    const oneTimeAnnouncements = await ScheduledAnnouncement.getActiveOneTime();
+
+    for (const announcement of oneTimeAnnouncements) {
+      try {
+        await sendScheduledAnnouncement(bot, announcement);
+        logger.info(`Sent one-time scheduled announcement #${announcement._id}`);
+
+        // Log to audit trail
+        logger.logModeration('system', null, 'schedule_send', {
+          announcementId: announcement._id.toString(),
+          scheduleType: 'once',
+          target: announcement.target,
+        });
+      } catch (error) {
+        logger.error(`Failed to send scheduled announcement #${announcement._id}: ${error.message}`);
+      }
+    }
+
+    // Check for recurring announcements (we'll use cron for these)
+    // This function is called by cron every minute
+  } catch (error) {
+    logger.error(`Error checking scheduled announcements: ${error.message}`);
+  }
+}
+
+// Schedule recurring announcements using cron
+async function setupRecurringAnnouncements() {
+  try {
+    const recurringAnnouncements = await ScheduledAnnouncement.getActiveRecurring();
+
+    for (const announcement of recurringAnnouncements) {
+      try {
+        // Create a cron job for each recurring announcement
+        cron.schedule(announcement.cronPattern, async () => {
+          try {
+            await sendScheduledAnnouncement(bot, announcement);
+            logger.info(`Sent recurring scheduled announcement #${announcement._id}`);
+
+            // Log to audit trail
+            logger.logModeration('system', null, 'schedule_send', {
+              announcementId: announcement._id.toString(),
+              scheduleType: 'recurring',
+              cronPattern: announcement.cronPattern,
+              target: announcement.target,
+            });
+          } catch (error) {
+            logger.error(`Failed to send recurring announcement #${announcement._id}: ${error.message}`);
+          }
+        }, {
+          timezone: "Europe/Berlin" // Adjust to your timezone
+        });
+
+        logger.info(`Set up cron job for recurring announcement #${announcement._id} (${announcement.cronDescription})`);
+      } catch (error) {
+        logger.error(`Failed to set up cron job for announcement #${announcement._id}: ${error.message}`);
+      }
+    }
+  } catch (error) {
+    logger.error(`Error setting up recurring announcements: ${error.message}`);
+  }
+}
+
+// Check one-time announcements every minute
+setInterval(checkScheduledAnnouncements, 60 * 1000);
+// Run immediately on startup
+checkScheduledAnnouncements();
+
+// Set up recurring announcements on startup
+setupRecurringAnnouncements();
+
+// Re-scan for new recurring announcements every hour
+setInterval(setupRecurringAnnouncements, 60 * 60 * 1000);
 
 // Launch the bot
 bot.launch();

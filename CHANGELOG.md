@@ -1,11 +1,192 @@
 # Changelog
 
-All notable changes to TG-Lobby-Bot will be documented in this file.
+All notable changes to SecretLoungeBot will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [2.0.0] - 2025-11-03
+
+### Added
+
+- **Anti-Spam Detection System** with automatic violation tracking and escalating mutes
+- New `SpamDetection` model with violation counters and auto-mute state
+- Spam handler with three detection types: flood, link spam, and rapid-fire
+- Flood detection: identifies repeated identical/similar messages (85% similarity threshold)
+- Link spam detection: monitors excessive links and suspicious URLs
+- Rapid-fire detection: prevents burst messaging (10+ messages per minute)
+- Automatic temporary mute escalation: 5m → 15m → 1h → 24h → 7d
+- `/antispam` command for viewing configuration and statistics
+- `/antispam config` to view all configurable options
+- `/antispam set <option> <value>` to update spam detection settings
+- `/antispam whitelist <alias>` to exempt users from spam checks
+- `/antispam unwhitelist <alias>` to remove spam check exemption
+- `/antispam reset <alias>` to reset user's violation count
+- `/antispam clear <alias>` to manually clear auto-mute
+- `/antispam top` to view top 10 spammers by violation count
+- Configurable thresholds for all spam detection types
+- Periodic cleanup of expired auto-mutes (every 5 minutes)
+- Levenshtein distance algorithm for message similarity detection
+- URL extraction and pattern matching for suspicious links
+- Admins, mods, and whitelisted users are exempt from all spam checks
+- Spam configuration stored in global Setting document
+- Integrated spam checks into relay handler before message distribution
+- User-friendly violation messages with remaining mute time
+- **Comprehensive Audit Log System** for all moderation actions
+- New `AuditLog` model with indexed queries for performance
+- Persistent database logging for all 41 moderation action types
+- `/auditlog` or `/audit` command for admins and mods to view moderation history
+- Pagination support for audit log (20 entries per page)
+- Filter audit log by action type (e.g., `/auditlog ban`)
+- Filter audit log by target user (e.g., `/auditlog user Alice`)
+- Filter audit log by moderator (e.g., `/auditlog mod Bob`)
+- Automatic logging for ban/unban operations (single and bulk)
+- Automatic logging for mute/unmute operations (single and bulk)
+- Automatic logging for kick operations (single and bulk)
+- Automatic logging for media restrictions (restrict/unrestrict)
+- Automatic logging for role changes (promote, demote)
+- Automatic logging for whitelist additions
+- Automatic logging for warnings issued and cleared
+- Automatic logging for auto-ban events (3 warnings)
+- Automatic logging for cooldown applications
+- Automatic logging for content filter management (add, remove, toggle)
+- Automatic logging for slowmode configuration (enable, disable)
+- Automatic logging for lobby rules management (add, remove, clear)
+- Automatic logging for invite system operations (mode toggle, create, revoke, activate, delete)
+- Automatic logging for report resolutions and dismissals
+- Metadata capture: moderator alias and target alias at time of action
+- Indexed queries by moderatorId, targetUserId, action, and timestamp
+- Permanent retention of audit logs for complete historical record
+- **Comprehensive Statistics Dashboard** for lobby insights
+- `/stats` or `/statistics` command for overall lobby statistics
+- User metrics: total registered, in lobby, active now, participation percentage
+- Message metrics: total, daily/weekly/monthly counts, text vs media breakdown
+- Activity insights: top 5 contributors, engagement levels
+- Moderation summary: action counts from audit log (last 30 days)
+- `/stats user <alias>` - User-specific activity and moderation history
+- User profile stats: status, role, join date, tenure, last activity
+- User message stats: total, text, media, replies, messages relayed
+- User moderation history: warnings, times moderated, current restrictions
+- `/stats period <day|week|month>` - Time-based activity analysis
+- Period shortcuts: `/stats day`, `/stats week`, `/stats month`
+- Period metrics: messages, new users, moderation actions, top contributors
+- **Performance optimizations**: 5-minute cache with TTL for expensive queries
+- Parallel query execution for fast stats retrieval
+- MongoDB aggregation pipelines for efficient data processing
+- Top contributor rankings across different timeframes
+- Real-time activity status (online/idle users)
+- Text vs media message percentage calculations
+- Growth trend indicators
+- **Scheduled Announcements System** for automated community messaging
+- New `ScheduledAnnouncement` model with one-time and recurring schedules
+- `/schedule` command for creating and managing scheduled announcements
+- One-time announcements with flexible time parsing (1h, 30m, 2d, 14:30, tomorrow, etc.)
+- Recurring announcements with cron patterns and convenient presets
+- 9 built-in schedule presets (daily-9am, daily-12pm, weekly-monday, hourly, etc.)
+- Custom cron pattern support (minute hour day month weekday format)
+- `/schedule create once <time> <message>` - Schedule one-time announcement
+- `/schedule create recurring <preset|pattern> <message>` - Schedule recurring announcement
+- `/schedule list` - View all scheduled announcements with status
+- `/schedule view <id>` - View detailed announcement information
+- `/schedule pause <id>` - Temporarily disable announcement
+- `/schedule resume <id>` - Re-enable paused announcement
+- `/schedule delete <id>` - Permanently remove announcement
+- `/schedule test <id>` - Preview announcement before it goes live
+- Flexible targeting: send to all users or lobby members only (--all flag)
+- Private notes support for admin reference (--notes flag)
+- Automatic one-time announcement checking every minute
+- Node-cron integration for efficient recurring announcements
+- Recurring announcements re-initialized on bot startup
+- Hourly re-scan for newly created recurring announcements
+- Send history tracking (count and last sent timestamp)
+- Automatic deactivation of one-time announcements after sending
+- 100ms delay between recipients to avoid rate limits
+- Timezone configuration support (defaults to Europe/Berlin)
+- Complete audit trail for all schedule operations (create, pause, resume, delete, send)
+- Persistent storage in MongoDB with indexed queries
+- Command aliases: `/schedules`, `/scheduled`
+- **Welcome Message System** for automated new member onboarding
+- `/welcome` command for enabling, disabling, and customizing welcome messages
+- `/welcome on [message]` - Enable welcome messages with optional custom text
+- `/welcome off` - Disable automatic welcome messages
+- `/welcome set <message>` - Update welcome message without toggling
+- `/welcome status` - View current configuration and message preview
+- Automatic welcome message delivery when users successfully join lobby
+- Welcome messages appear after pinned messages (if any)
+- Customizable message content to suit community needs
+- Default welcome message guides new users to `/help` and basic commands
+- Welcome configuration stored in global Setting document
+- Complete audit trail for welcome message operations (enable, disable, update)
+- Graceful error handling ensures welcome message failures don't interrupt join flow
+- **Message Search System** for finding past conversations and information
+- `/search <query>` or `/find <query>` - Search your own message history
+- Privacy-focused: users can only search messages they sent
+- Case-insensitive regex search with automatic special character escaping
+- Query validation (2-100 characters) for performance and safety
+- Rich result display with type emoji, timestamp, and message preview
+- Search term highlighting with bold/underline formatting in results
+- Searches text messages and media captions across all message types
+- Result deduplication groups by original message to avoid duplicates
+- Limit to 50 database results, displays top 20 most recent matches
+- Fast indexed queries on RelayedMessage collection for performance
+- Comprehensive error messages and usage guidance
+- Command execution logged for analytics
+- **Backup/Export System** for data portability and GDPR compliance
+- `/export` command for exporting bot data in JSON format
+- `/export users` - Export all user data including profiles, activity, and preferences
+- `/export messages [days]` - Export message history with optional time filtering
+- `/export full [days]` - Complete system backup with all data
+- `/export user <alias>` - GDPR-compliant export of specific user's complete data
+- User data exports include: profiles, activity metrics, preferences, blocked users count
+- Message exports include: metadata, captions, album IDs, recipient counts, message types
+- Full backup includes: users, messages, reports, polls, audit logs, pins, reactions, schedules, settings
+- GDPR user exports: personal data, activity, preferences, blocked user IDs, messages sent, reports, polls, moderation history
+- JSON export format with type, date, time range, and structured data
+- Exports delivered as document attachments with file size and generation time
+- Time-filtered message exports (e.g., last 7 days, last 30 days)
+- Admin-only access with complete audit trail logging
+- 4 audit log action types: export_users, export_messages, export_full, export_user
+- Performance optimizations: parallel queries, batch operations, indexed lookups
+- Privacy protection: blocked user IDs only in GDPR exports, counts in general exports
+- Command alias: `/backup` for `/export`
+- Native `message_reaction` event handler in relayHandler
+- Automatic reaction propagation across all relayed message copies
+- Support for Telegram's full reaction set (not limited to 5 emojis)
+- Native pin/unpin functionality across all lobby members
+- Hybrid pin system supporting both announcements and relayed messages
+
+### Changed
+
+- Message reactions now use Telegram's built-in reaction system for better UX
+- Reactions are automatically relayed across all copies of a message
+- Users can react using native Telegram UI (long-press on message)
+- **Pin system overhauled** to support native Telegram pins
+- `/pin` command now supports two modes:
+  - Reply to a message with `/pin` - pins that specific relayed message in all chats
+  - `/pin <text>` - creates and pins a new announcement in all chats
+- Pins now actually appear at the top of users' chats (native Telegram pins)
+- `/unpin` command now unpins messages from all users' chats
+- `/pinned` command displays both announcement pins and relayed message pins
+- PinnedMessage model extended with `type`, `relayedMessageIds`, `originalUserId`, `originalMsgId`
+- Enhanced `logger.logModeration()` to create database audit entries
+- Updated all moderation commands to use correct logger parameter order
+- Fixed parameter order in existing ban, mute, and kick logging calls
+- Bulk operations now log correctly with null targetUser and details array
+
+### Removed
+
+- Custom reaction inline keyboard buttons (replaced with native reactions)
+- Reaction model and database tracking (no longer needed)
+- `src/relay/reactions.js` (reaction keyboard generation)
+- Callback query handler for reaction buttons
+- Follow-up reaction keyboard messages for media groups
+
+### Fixed
+
+- Reactions no longer require database storage or custom UI maintenance
+- Pin system is now more intuitive and matches Telegram's native behavior
 
 ## [1.9.0] - 2025-11-02
 
@@ -240,7 +421,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Initial release of TG-Lobby-Bot
+- Initial release of SecretLoungeBot
 - Anonymous chat lobby system with user registration
 - User alias and custom emoji icon support
 - Message relay system for text and media (photo, video, audio, document, sticker, voice, animation)

@@ -2,6 +2,7 @@ import { getAlias, muteUser } from "../../users/index.js";
 import { parseDuration } from "../utils/parsers.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["cooldown", "cd"],
@@ -51,6 +52,11 @@ export function register(bot) {
       const targetAlias = await getAlias(userId);
       const targetAliasEscaped = escapeMarkdownV2(targetAlias);
       const cooldownMinutes = Math.round(durationMs / 60000);
+
+      logger.logModeration("cooldown_apply", ctx.from.id, userId, {
+        durationMs,
+        reason,
+      });
 
       // Notify the target user
       const notificationText = `⏸️ You have been given a ${cooldownMinutes} minute cooldown by a moderator${

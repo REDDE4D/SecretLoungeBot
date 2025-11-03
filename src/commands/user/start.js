@@ -1,4 +1,5 @@
-import { escapeMarkdownV2 } from "../../utils/sanitize.js";
+import { escapeMarkdownV2, escapeHTML } from "../../utils/sanitize.js";
+import PinnedMessage from "../../models/PinnedMessage.js";
 
 export const meta = {
   commands: ["start"],
@@ -10,7 +11,7 @@ export const meta = {
 };
 
 export function register(bot) {
-  bot.start((ctx) => {
+  bot.start(async (ctx) => {
     const startText = [
       "👋 *Welcome to the Anonymous Lobby Bot*",
       "━━━━━━━━━━━━━━━━━━━━",
@@ -38,8 +39,28 @@ export function register(bot) {
       "━━━━━━━━━━━━━━━━━━━━",
     ].join("\n");
 
-    ctx.telegram.sendMessage(ctx.chat.id, startText, {
+    await ctx.telegram.sendMessage(ctx.chat.id, startText, {
       parse_mode: "MarkdownV2",
     });
+
+    // Display pinned messages if any
+    try {
+      const pins = await PinnedMessage.getAllPins();
+
+      if (pins.length > 0) {
+        let pinnedText = `📌 <b>Pinned Messages</b>\n\n`;
+
+        for (const pin of pins) {
+          pinnedText += `${escapeHTML(pin.message)}\n\n`;
+        }
+
+        pinnedText += `<i>Use /pinned to view all pinned messages</i>`;
+
+        await ctx.replyWithHTML(pinnedText);
+      }
+    } catch (err) {
+      // Silently fail - don't interrupt the user experience
+      console.error("Error loading pinned messages:", err);
+    }
   });
 }

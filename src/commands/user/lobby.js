@@ -1,6 +1,8 @@
 import Setting from "../../models/Setting.js";
 import Invite from "../../models/Invite.js";
+import PinnedMessage from "../../models/PinnedMessage.js";
 import { joinLobby, leaveLobby, getUserMeta, registerUser } from "../../users/index.js";
+import { escapeHTML } from "../../utils/sanitize.js";
 
 export const meta = {
   commands: ["join", "j", "leave", "l"],
@@ -52,6 +54,38 @@ export function register(bot) {
 
     const res = await joinLobby(ctx.from.id);
     await ctx.reply(res);
+
+    // Display pinned messages if user successfully joined
+    if (res.includes("✅")) {
+      try {
+        const pins = await PinnedMessage.getAllPins();
+
+        if (pins.length > 0) {
+          let pinnedText = `📌 <b>Pinned Messages</b>\n\n`;
+
+          for (const pin of pins) {
+            pinnedText += `${escapeHTML(pin.message)}\n\n`;
+          }
+
+          pinnedText += `<i>Use /pinned to view all pinned messages</i>`;
+
+          await ctx.replyWithHTML(pinnedText);
+        }
+      } catch (err) {
+        // Silently fail - don't interrupt the user experience
+        console.error("Error loading pinned messages:", err);
+      }
+
+      // Send welcome message if enabled
+      try {
+        if (setting.welcomeEnabled && setting.welcomeMessage) {
+          await ctx.reply(setting.welcomeMessage);
+        }
+      } catch (err) {
+        // Silently fail - don't interrupt the user experience
+        console.error("Error sending welcome message:", err);
+      }
+    }
   };
 
   // Leave command handler

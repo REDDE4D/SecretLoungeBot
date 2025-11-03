@@ -33,7 +33,7 @@ export function register(bot) {
         const aliasRaw = await getAlias(userId);
         const aliasEscaped = escapeMarkdownV2(aliasRaw);
 
-        logger.logModeration(ctx.from.id, "kick", userId);
+        logger.logModeration("kick", ctx.from.id, userId);
         return ctx.reply(`👢 Kicked *${aliasEscaped}* from lobby.`, {
           parse_mode: "MarkdownV2",
         });
@@ -71,7 +71,7 @@ export function register(bot) {
         await kickUser(userId);
         const aliasEscaped = escapeMarkdownV2(resolvedAlias);
 
-        logger.logModeration(ctx.from.id, "kick", userId);
+        logger.logModeration("kick", ctx.from.id, userId);
         return ctx.reply(`👢 Kicked *${aliasEscaped}* from lobby.`, {
           parse_mode: "MarkdownV2",
         });
@@ -174,9 +174,15 @@ export function register(bot) {
         message += `\n\n❌ Failed to kick:\n${failedKicks.map((f) => `• ${f.alias}: ${f.reason}`).join("\n")}`;
       }
 
-      logger.logModeration(pending.adminId, "bulk_kick", pending.users.map((u) => u.userId).join(", "), {
-        count: kicked.length,
-      });
+      logger.logModeration(
+        "bulk_kick",
+        pending.adminId,
+        null,
+        {
+          count: kicked.length,
+          userIds: pending.users.map((u) => u.userId),
+        }
+      );
 
       pendingBulkKicks.delete(confirmationId);
       await ctx.editMessageText(message);

@@ -1,5 +1,6 @@
 // src/commands/admin/slowmode.js
 import Setting from "../../models/Setting.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["slowmode"],
@@ -40,6 +41,8 @@ export function register(bot) {
           { upsert: true, new: true }
         );
 
+        logger.logModeration("slowmode_disable", ctx.from.id, null);
+
         return ctx.reply("⚡ Slowmode disabled");
       }
 
@@ -72,6 +75,8 @@ export function register(bot) {
         },
         { upsert: true, new: true }
       );
+
+      logger.logModeration("slowmode_enable", ctx.from.id, null, { seconds });
 
       // Format time display
       let timeDisplay;

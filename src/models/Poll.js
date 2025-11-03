@@ -14,6 +14,10 @@ const PollSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true }, // Whether poll is still open
     closedAt: { type: Date, default: null }, // When poll was closed
     relayedMessageIds: { type: Map, of: Number, default: {} }, // userId -> messageId mapping
+    allowMultipleChoice: { type: Boolean, default: false }, // Allow voting for multiple options
+    isAnonymous: { type: Boolean, default: true }, // Hide voter names (true = anonymous)
+    expiresAt: { type: Date, default: null }, // Automatic expiration time
+    allowEditing: { type: Boolean, default: false }, // Allow creator to edit poll
   },
   { timestamps: true }
 );
@@ -23,6 +27,9 @@ PollSchema.index({ isActive: 1, createdAt: -1 });
 
 // Index for finding polls by creator (e.g., /endpoll command)
 PollSchema.index({ creatorId: 1, isActive: 1, createdAt: -1 });
+
+// Index for finding polls that need expiration check
+PollSchema.index({ isActive: 1, expiresAt: 1 });
 
 // Virtual for total vote count
 PollSchema.virtual("totalVotes").get(function () {

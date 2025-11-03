@@ -1,6 +1,7 @@
 import { getAlias, setRole } from "../../users/index.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["whitelist", "wl"],
@@ -20,6 +21,8 @@ export function register(bot) {
       const userId = await resolveTargetUser(ctx, alias);
       const result = await setRole(userId, "whitelist");
       const aliasRaw = await getAlias(userId);
+
+      logger.logModeration("whitelist_add", ctx.from.id, userId);
 
       ctx.reply(escapeMarkdownV2(result), { parse_mode: "MarkdownV2" });
     } catch (err) {

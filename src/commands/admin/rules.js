@@ -1,5 +1,6 @@
 import Setting from "../../models/Setting.js";
 import { escapeHTML } from "../../utils/sanitize.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["rules_add", "rules_remove", "rules_clear", "rules_list"],
@@ -53,6 +54,11 @@ export function register(bot) {
       doc.rules.push({ emoji, text: extractedText });
       await doc.save();
 
+      logger.logModeration("rule_add", ctx.from.id, null, {
+        ruleText: extractedText,
+        emoji,
+      });
+
       await ctx.replyWithHTML(
         `✅ <b>Rule added</b> (#${doc.rules.length})\n\n${emoji} ${escapeHTML(extractedText)}`
       );
@@ -90,6 +96,11 @@ export function register(bot) {
       settings.rules.splice(index, 1);
       await settings.save();
 
+      logger.logModeration("rule_remove", ctx.from.id, null, {
+        ruleIndex: index + 1,
+        ruleText: removedRule.text,
+      });
+
       await ctx.replyWithHTML(
         `🗑️ <b>Rule removed</b>\n\n${removedRule.emoji} ${escapeHTML(removedRule.text)}`
       );
@@ -111,6 +122,8 @@ export function register(bot) {
       const count = settings.rules.length;
       settings.rules = [];
       await settings.save();
+
+      logger.logModeration("rule_clear", ctx.from.id, null, { count });
 
       await ctx.replyWithHTML(`🗑️ <b>Cleared all ${count} rule(s)</b>`);
     } catch (err) {

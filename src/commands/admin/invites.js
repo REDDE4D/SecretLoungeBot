@@ -4,6 +4,7 @@ import { genCode } from "../../utils/inviteUtils.js";
 import { parseExpiry } from "../utils/parsers.js";
 import { escapeHTML } from "../../utils/sanitize.js";
 import { paginate, buildPaginationKeyboard, getPaginationFooter } from "../../utils/pagination.js";
+import logger from "../../utils/logger.js";
 
 export const meta = {
   commands: ["invite_on", "invite_off", "invite_new", "invite_list", "invite_revoke", "invite_activate", "invite_delete"],
@@ -74,6 +75,8 @@ export function register(bot) {
     doc.inviteOnly = true;
     await doc.save();
 
+    logger.logModeration("invite_mode_enable", ctx.from.id, null);
+
     await ctx.replyWithHTML("🔐 <b>Invite-only</b> mode is now <b>ENABLED</b>.");
   });
 
@@ -83,6 +86,8 @@ export function register(bot) {
     const doc = s || new Setting({ _id: "global" });
     doc.inviteOnly = false;
     await doc.save();
+
+    logger.logModeration("invite_mode_disable", ctx.from.id, null);
 
     await ctx.replyWithHTML("🔓 <b>Invite-only</b> mode is now <b>DISABLED</b>.");
   });
@@ -105,6 +110,12 @@ export function register(bot) {
       expiresAt,
       active: true,
       notes,
+    });
+
+    logger.logModeration("invite_create", ctx.from.id, null, {
+      inviteCode: code,
+      maxUses,
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
     });
 
     const expiryStr = expiresAt ? expiresAt.toISOString() : "no expiry";
@@ -146,6 +157,10 @@ export function register(bot) {
     inv.active = false;
     await inv.save();
 
+    logger.logModeration("invite_revoke", ctx.from.id, null, {
+      inviteCode: inv.code,
+    });
+
     await ctx.replyWithHTML(`🚫 Revoked invite <code>${inv.code}</code>.`);
   });
 
@@ -160,6 +175,10 @@ export function register(bot) {
     inv.active = true;
     await inv.save();
 
+    logger.logModeration("invite_activate", ctx.from.id, null, {
+      inviteCode: inv.code,
+    });
+
     await ctx.replyWithHTML(`✅ Activated invite <code>${inv.code}</code>.`);
   });
 
@@ -170,6 +189,10 @@ export function register(bot) {
 
     const res = await Invite.deleteOne({ code: code.toUpperCase() });
     if (!res.deletedCount) return ctx.reply("❌ Invite not found.");
+
+    logger.logModeration("invite_delete", ctx.from.id, null, {
+      inviteCode: code.toUpperCase(),
+    });
 
     await ctx.replyWithHTML(`🗑️ Deleted invite <code>${code.toUpperCase()}</code>.`);
   });
