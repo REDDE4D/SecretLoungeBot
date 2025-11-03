@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
 # 🎭 SecretLoungeBot (Telegram Lobby Bot)
-=======
-# 🎭 SecretLoungeBot
->>>>>>> Stashed changes
 
 > An anonymous Telegram chat lobby bot that enables users to communicate anonymously through customizable aliases and emoji avatars.
 
@@ -74,6 +70,7 @@ Before you begin, ensure you have the following installed and set up:
   ```
 
 **Verify installation:**
+
 ```bash
 node --version  # Should show v16.0.0 or higher
 npm --version   # Should show 7.0.0 or higher
@@ -151,6 +148,7 @@ npm install
 ```
 
 This will install all required packages:
+
 - `telegraf` - Telegram bot framework
 - `mongoose` - MongoDB ODM
 - `winston` - Logging system
@@ -223,6 +221,7 @@ npm start
 ```
 
 You should see output like:
+
 ```
 [INFO] MongoDB connected successfully
 [INFO] Bot started successfully as @your_bot_username
@@ -240,6 +239,7 @@ You should see output like:
 ### Step 3: Configure Lobby (Optional)
 
 **Set lobby rules:**
+
 ```
 /rules_add 1️⃣ Be respectful to all members
 /rules_add 2️⃣ No spam or harassment
@@ -247,6 +247,7 @@ You should see output like:
 ```
 
 **Enable invite-only mode (optional):**
+
 ```
 /invite_on
 /invite_new 10 7d Welcome to the lobby!
@@ -255,9 +256,11 @@ You should see output like:
 ### Step 4: Invite Users
 
 **If invite-only is OFF:**
+
 - Users can join directly with `/join`
 
 **If invite-only is ON:**
+
 - Share invite codes with `/invite_list`
 - Users join with `/join CODE`
 
@@ -275,67 +278,70 @@ You should see output like:
 
 #### 🎨 Identity & Profile
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/start` | - | Initialize bot and see welcome message | `/start` |
-| `/alias <name>` | `/setalias`, `/rename` | Set your display name (2-32 chars) | `/alias Anonymous` |
-| `/icon <emoji>` | - | Set your avatar emoji | `/icon 🎭` |
-| `/profile [alias\|reply]` | - | View detailed user statistics | `/profile` or `/profile Alice` |
-| `/tenure` | - | View lobby membership duration | `/tenure` |
-| `/version` | `/v` | Display bot version and uptime | `/version` |
+| Command                   | Aliases                | Description                            | Example                        |
+| ------------------------- | ---------------------- | -------------------------------------- | ------------------------------ |
+| `/start`                  | -                      | Initialize bot and see welcome message | `/start`                       |
+| `/alias <name>`           | `/setalias`, `/rename` | Set your display name (2-32 chars)     | `/alias Anonymous`             |
+| `/icon <emoji>`           | -                      | Set your avatar emoji                  | `/icon 🎭`                     |
+| `/profile [alias\|reply]` | -                      | View detailed user statistics          | `/profile` or `/profile Alice` |
+| `/tenure`                 | -                      | View lobby membership duration         | `/tenure`                      |
+| `/version`                | `/v`                   | Display bot version and uptime         | `/version`                     |
 
 #### 🚪 Lobby Participation
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/join [code]` | `/j` | Join the lobby (with optional invite code) | `/join` or `/join ABC123` |
-| `/leave` | `/l` | Leave the lobby | `/leave` |
-| `/online` | `/o` | Show count of active users | `/online` |
-| `/rules` | - | View lobby rules and guidelines | `/rules` |
+| Command        | Aliases | Description                                | Example                   |
+| -------------- | ------- | ------------------------------------------ | ------------------------- |
+| `/join [code]` | `/j`    | Join the lobby (with optional invite code) | `/join` or `/join ABC123` |
+| `/leave`       | `/l`    | Leave the lobby                            | `/leave`                  |
+| `/online`      | `/o`    | Show count of active users                 | `/online`                 |
+| `/rules`       | -       | View lobby rules and guidelines            | `/rules`                  |
 
 #### 💬 Messaging & Communication
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/msg <alias> <message>` | `/dm` | Send private anonymous message | `/msg Alice Hello there!` |
-| `/sign <message>` | `/s` | Sign message with your Telegram username | `/sign This is me!` |
-| `/history` | - | View last 50 messages from past 12 hours | `/history` |
+| Command                  | Aliases | Description                              | Example                   |
+| ------------------------ | ------- | ---------------------------------------- | ------------------------- |
+| `/msg <alias> <message>` | `/dm`   | Send private anonymous message           | `/msg Alice Hello there!` |
+| `/sign <message>`        | `/s`    | Sign message with your Telegram username | `/sign This is me!`       |
+| `/history`               | -       | View last 50 messages from past 12 hours | `/history`                |
 
 #### 🔒 Privacy & Blocking
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/block <alias\|reply>` | - | Block a user privately (no notification) | `/block Alice` or reply with `/block` |
-| `/unblock <alias\|reply>` | - | Unblock a user | `/unblock Alice` |
-| `/blocklist` | - | View all blocked users | `/blocklist` |
+| Command                   | Aliases | Description                              | Example                               |
+| ------------------------- | ------- | ---------------------------------------- | ------------------------------------- |
+| `/block <alias\|reply>`   | -       | Block a user privately (no notification) | `/block Alice` or reply with `/block` |
+| `/unblock <alias\|reply>` | -       | Unblock a user                           | `/unblock Alice`                      |
+| `/blocklist`              | -       | View all blocked users                   | `/blocklist`                          |
 
 #### 🎪 Community Features
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/poll [flags] <question> \| <opt1> \| <opt2> \| ...` | - | Create poll with advanced features (2-6 options) | `/poll --multi --expires=1h What features? \| Feature A \| Feature B` |
-| `/endpoll` | - | Close your most recent active poll | `/endpoll` |
-| `/editpoll <pollId> <field> <value>` | - | Edit poll question or options (if editable) | `/editpoll 123abc question New question?` |
-| `/pollresults <pollId>` | - | View detailed poll results | `/pollresults 123abc` |
-| `/leaderboard [period]` | `/top`, `/lb` | View rankings (daily/weekly/alltime) | `/leaderboard weekly` |
-| `/report [reason]` | - | Report message to moderators (reply to msg) | Reply to message: `/report Spam` |
+| Command                                               | Aliases       | Description                                      | Example                                                               |
+| ----------------------------------------------------- | ------------- | ------------------------------------------------ | --------------------------------------------------------------------- |
+| `/poll [flags] <question> \| <opt1> \| <opt2> \| ...` | -             | Create poll with advanced features (2-6 options) | `/poll --multi --expires=1h What features? \| Feature A \| Feature B` |
+| `/endpoll`                                            | -             | Close your most recent active poll               | `/endpoll`                                                            |
+| `/editpoll <pollId> <field> <value>`                  | -             | Edit poll question or options (if editable)      | `/editpoll 123abc question New question?`                             |
+| `/pollresults <pollId>`                               | -             | View detailed poll results                       | `/pollresults 123abc`                                                 |
+| `/leaderboard [period]`                               | `/top`, `/lb` | View rankings (daily/weekly/alltime)             | `/leaderboard weekly`                                                 |
+| `/report [reason]`                                    | -             | Report message to moderators (reply to msg)      | Reply to message: `/report Spam`                                      |
 
 #### 📊 Enhanced Poll Features
 
 Create polls with advanced features for better community engagement.
 
 **Basic Poll Creation:**
+
 ```
 /poll What's your favorite color? | Red | Blue | Green | Yellow
 ```
 
 **Poll Flags:**
+
 - `--multi` - Allow multiple choice voting (users can vote for more than one option)
 - `--public` - Show voter names (default is anonymous)
 - `--expires=TIME` - Auto-close poll after duration (e.g., `30m`, `1h`, `2h`, `1d`, `7d`)
 - `--editable` - Allow editing the poll after creation
 
 **Examples:**
+
 ```
 # Multi-choice poll with 1-hour expiry
 /poll --multi --expires=1h Which features do you want? | Feature A | Feature B | Feature C
@@ -348,6 +354,7 @@ Create polls with advanced features for better community engagement.
 ```
 
 **Editing Polls:**
+
 ```
 # Edit poll question
 /editpoll 123abc question What's your favorite fruit?
@@ -358,6 +365,7 @@ Create polls with advanced features for better community engagement.
 ```
 
 **Features:**
+
 - **Single-choice** (default) or **multi-choice** voting
 - **Anonymous** (default) or **public** voting with voter names
 - **Automatic expiration** with configurable durations (minutes, hours, days)
@@ -368,6 +376,7 @@ Create polls with advanced features for better community engagement.
 - Creator is notified when poll expires
 
 **How It Works:**
+
 - Create a poll with your preferred flags
 - Users vote by tapping options (tap again to remove vote)
 - For multi-choice polls, users can select multiple options
@@ -379,14 +388,15 @@ Create polls with advanced features for better community engagement.
 
 Customize your personal lobby experience with individual preferences.
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/preferences` | `/prefs`, `/settings` | View all your current preferences | `/preferences` |
-| `/preferences set <option> <value>` | - | Update a specific preference | `/preferences set compactMode true` |
-| `/compact` | - | Quick toggle for compact mode | `/compact` |
-| `/quiet` | - | Quick toggle for hiding status announcements | `/quiet` |
+| Command                             | Aliases               | Description                                  | Example                             |
+| ----------------------------------- | --------------------- | -------------------------------------------- | ----------------------------------- |
+| `/preferences`                      | `/prefs`, `/settings` | View all your current preferences            | `/preferences`                      |
+| `/preferences set <option> <value>` | -                     | Update a specific preference                 | `/preferences set compactMode true` |
+| `/compact`                          | -                     | Quick toggle for compact mode                | `/compact`                          |
+| `/quiet`                            | -                     | Quick toggle for hiding status announcements | `/quiet`                            |
 
 **Available Preferences:**
+
 - **Compact Mode** (`compactMode`): Reduce spacing in message display for a more condensed view
   - Values: `true` or `false` (default: `false`)
   - Example: `/preferences set compactMode true`
@@ -404,6 +414,7 @@ Customize your personal lobby experience with individual preferences.
   - Example: `/preferences set autoMarkRead false`
 
 **Features:**
+
 - All preferences are private and personal to you
 - Changes take effect immediately
 - Preferences persist across sessions
@@ -414,12 +425,14 @@ Customize your personal lobby experience with individual preferences.
 React to lobby messages using Telegram's built-in reaction system. All reactions are automatically synchronized across all lobby members.
 
 **How to React:**
+
 - **Long-press** (mobile) or **right-click** (desktop) on any lobby message
 - Select any emoji reaction from Telegram's reaction picker
 - Your reaction appears instantly on the message
 - All lobby members see your reaction on their copy of the message
 
 **Features:**
+
 - **Native Telegram UI**: Use the familiar, built-in reaction interface
 - **Full Emoji Support**: Access Telegram's complete reaction set (not limited to specific emojis)
 - **Automatic Sync**: Reactions relay across all lobby members instantly
@@ -428,12 +441,14 @@ React to lobby messages using Telegram's built-in reaction system. All reactions
 - **Real-time Updates**: All users see reactions update in real-time
 
 **How It Works:**
+
 - When you react to a relayed message, the bot detects your reaction
 - The bot automatically propagates your reaction to all other copies
 - Every lobby member sees the same reactions on their copy
 - Removing a reaction also syncs across all users
 
 **Notes:**
+
 - Only lobby members can react to relayed messages
 - Banned or muted users cannot add reactions
 - Reactions work on all message types (text, photos, videos, albums, etc.)
@@ -441,15 +456,15 @@ React to lobby messages using Telegram's built-in reaction system. All reactions
 
 #### 🗑️ Account Management
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/deleteme` | - | Permanently delete account and all data | `/deleteme` |
+| Command     | Aliases | Description                             | Example     |
+| ----------- | ------- | --------------------------------------- | ----------- |
+| `/deleteme` | -       | Permanently delete account and all data | `/deleteme` |
 
 #### ℹ️ Help & Information
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/help [topic\|command]` | `/h` | Show help (user/mod/admin/command) | `/help`, `/help admin`, `/help ban` |
+| Command                  | Aliases | Description                        | Example                             |
+| ------------------------ | ------- | ---------------------------------- | ----------------------------------- |
+| `/help [topic\|command]` | `/h`    | Show help (user/mod/admin/command) | `/help`, `/help admin`, `/help ban` |
 
 ---
 
@@ -457,16 +472,16 @@ React to lobby messages using Telegram's built-in reaction system. All reactions
 
 Available to users with **mod** or **admin** role.
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/whois <alias\|reply>` | `/w`, `/userinfo`, `/ui` | View detailed user information | `/whois Alice` or reply with `/whois` |
-| `/warn <alias\|reply> [reason]` | - | Issue warning (3 warnings = auto-ban) | `/warn Alice Spamming` |
-| `/clearwarns <alias\|reply>` | - | Clear all warnings for user | `/clearwarns Alice` |
-| `/cooldown <alias\|reply> <duration>` | `/cd` | Temporary mute (e.g., 30m, 2h, 1d) | `/cooldown Alice 1h` |
-| `/reports` | - | List all pending reports | `/reports` |
-| `/viewreport <id>` | - | View detailed report information | `/viewreport 123` |
-| `/resolve <id> <action> [notes]` | - | Resolve report (none/warned/muted/banned/kicked/media_restricted) | `/resolve 123 warned Spam warning issued` |
-| `/whitelist <alias\|reply>` | `/wl` | Add/remove from whitelist (exempt from compliance) | `/whitelist Alice` |
+| Command                               | Aliases                  | Description                                                       | Example                                   |
+| ------------------------------------- | ------------------------ | ----------------------------------------------------------------- | ----------------------------------------- |
+| `/whois <alias\|reply>`               | `/w`, `/userinfo`, `/ui` | View detailed user information                                    | `/whois Alice` or reply with `/whois`     |
+| `/warn <alias\|reply> [reason]`       | -                        | Issue warning (3 warnings = auto-ban)                             | `/warn Alice Spamming`                    |
+| `/clearwarns <alias\|reply>`          | -                        | Clear all warnings for user                                       | `/clearwarns Alice`                       |
+| `/cooldown <alias\|reply> <duration>` | `/cd`                    | Temporary mute (e.g., 30m, 2h, 1d)                                | `/cooldown Alice 1h`                      |
+| `/reports`                            | -                        | List all pending reports                                          | `/reports`                                |
+| `/viewreport <id>`                    | -                        | View detailed report information                                  | `/viewreport 123`                         |
+| `/resolve <id> <action> [notes]`      | -                        | Resolve report (none/warned/muted/banned/kicked/media_restricted) | `/resolve 123 warned Spam warning issued` |
+| `/whitelist <alias\|reply>`           | `/wl`                    | Add/remove from whitelist (exempt from compliance)                | `/whitelist Alice`                        |
 
 ---
 
@@ -478,40 +493,40 @@ Available to users with **admin** role only.
 
 **Supports multiple users** - separate aliases with spaces. Interactive confirmation for 2+ users.
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/ban <aliases> [duration]` | `/b` | Ban users (permanent or temporary) | `/ban Alice Bob 7d` |
-| `/unban <aliases>` | `/ub` | Unban users | `/unban Alice Bob` |
-| `/mute <aliases> [duration]` | `/m` | Mute users (temporary) | `/mute Alice Bob 2h` |
-| `/unmute <aliases>` | `/um` | Unmute users | `/unmute Alice Bob` |
-| `/kick <aliases>` | `/k` | Kick users from lobby | `/kick Alice Bob Charlie` |
+| Command                      | Aliases | Description                        | Example                   |
+| ---------------------------- | ------- | ---------------------------------- | ------------------------- |
+| `/ban <aliases> [duration]`  | `/b`    | Ban users (permanent or temporary) | `/ban Alice Bob 7d`       |
+| `/unban <aliases>`           | `/ub`   | Unban users                        | `/unban Alice Bob`        |
+| `/mute <aliases> [duration]` | `/m`    | Mute users (temporary)             | `/mute Alice Bob 2h`      |
+| `/unmute <aliases>`          | `/um`   | Unmute users                       | `/unmute Alice Bob`       |
+| `/kick <aliases>`            | `/k`    | Kick users from lobby              | `/kick Alice Bob Charlie` |
 
 **Duration formats**: `30m` (30 minutes), `2h` (2 hours), `7d` (7 days), `1w` (1 week)
 
 #### 🛡️ User Management
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/restrictmedia <alias\|reply>` | `/rm` | Restrict user to text-only messages | `/restrictmedia Alice` |
-| `/unrestrictmedia <alias\|reply>` | `/urm` | Remove media restriction | `/unrestrictmedia Alice` |
-| `/promote <alias\|reply> <role>` | - | Promote to mod or admin | `/promote Alice mod` |
-| `/demote <alias\|reply>` | - | Remove moderator/admin role | `/demote Alice` |
+| Command                           | Aliases | Description                         | Example                  |
+| --------------------------------- | ------- | ----------------------------------- | ------------------------ |
+| `/restrictmedia <alias\|reply>`   | `/rm`   | Restrict user to text-only messages | `/restrictmedia Alice`   |
+| `/unrestrictmedia <alias\|reply>` | `/urm`  | Remove media restriction            | `/unrestrictmedia Alice` |
+| `/promote <alias\|reply> <role>`  | -       | Promote to mod or admin             | `/promote Alice mod`     |
+| `/demote <alias\|reply>`          | -       | Remove moderator/admin role         | `/demote Alice`          |
 
 #### 📢 Announcements
 
-| Command | Aliases | Description | Example |
-|---------|---------|-------------|---------|
-| `/announce_lobby <message>` | - | Send announcement to all lobby members | `/announce_lobby Maintenance in 1 hour` |
-| `/announce_all <message>` | - | Send announcement to ALL registered users | `/announce_all New features released!` |
+| Command                     | Aliases | Description                               | Example                                 |
+| --------------------------- | ------- | ----------------------------------------- | --------------------------------------- |
+| `/announce_lobby <message>` | -       | Send announcement to all lobby members    | `/announce_lobby Maintenance in 1 hour` |
+| `/announce_all <message>`   | -       | Send announcement to ALL registered users | `/announce_all New features released!`  |
 
 #### 🐌 Slowmode
 
 Rate limiting system - minimum delay between messages per user.
 
-| Command | Description | Example |
-|---------|-------------|---------|
+| Command                    | Description                             | Example                           |
+| -------------------------- | --------------------------------------- | --------------------------------- |
 | `/slowmode [seconds\|off]` | Set slowmode delay (1-3600s) or disable | `/slowmode 30` or `/slowmode off` |
-| `/slowmode` | Check current slowmode status | `/slowmode` |
+| `/slowmode`                | Check current slowmode status           | `/slowmode`                       |
 
 **Note**: Admins, mods, and whitelisted users are exempt from slowmode.
 
@@ -519,14 +534,15 @@ Rate limiting system - minimum delay between messages per user.
 
 Temporarily disable the lobby for maintenance or updates. All lobby messages will be blocked with a custom message shown to users.
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/maintenance` | Show current maintenance mode status | `/maintenance` |
+| Command                     | Description                                          | Example                                        |
+| --------------------------- | ---------------------------------------------------- | ---------------------------------------------- |
+| `/maintenance`              | Show current maintenance mode status                 | `/maintenance`                                 |
 | `/maintenance on [message]` | Enable maintenance mode with optional custom message | `/maintenance on We'll be back in 30 minutes!` |
-| `/maintenance off` | Disable maintenance mode | `/maintenance off` |
-| `/maintenance status` | Check current status (alias for `/maintenance`) | `/maintenance status` |
+| `/maintenance off`          | Disable maintenance mode                             | `/maintenance off`                             |
+| `/maintenance status`       | Check current status (alias for `/maintenance`)      | `/maintenance status`                          |
 
 **Features:**
+
 - Blocks all lobby messages during maintenance
 - Customizable user-facing message
 - Admins can still use commands and send messages
@@ -539,36 +555,38 @@ Temporarily disable the lobby for maintenance or updates. All lobby messages wil
 
 Block messages matching keywords or regex patterns.
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/filter add <pattern> [notes]` | Add keyword/regex filter | `/filter add badword Offensive content` |
-| `/filter list` | View all filters (paginated) | `/filter list` |
-| `/filter remove <id>` | Delete filter | `/filter remove 5` |
-| `/filter toggle <id>` | Enable/disable filter | `/filter toggle 5` |
+| Command                         | Description                  | Example                                 |
+| ------------------------------- | ---------------------------- | --------------------------------------- |
+| `/filter add <pattern> [notes]` | Add keyword/regex filter     | `/filter add badword Offensive content` |
+| `/filter list`                  | View all filters (paginated) | `/filter list`                          |
+| `/filter remove <id>`           | Delete filter                | `/filter remove 5`                      |
+| `/filter toggle <id>`           | Enable/disable filter        | `/filter toggle 5`                      |
 
 #### 🛡️ Anti-Spam System
 
 Automatic spam detection and prevention system with escalating temporary mutes.
 
 **Detection Types:**
+
 - **Flood Detection**: Repeated identical/similar messages (85% similarity threshold)
 - **Link Spam**: Too many links in messages or suspicious URLs
 - **Rapid-Fire**: Burst messaging (10+ messages per minute)
 
 **Auto-Mute Escalation**: 5m → 15m → 1h → 24h → 7d (resets over time)
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/antispam` | Show configuration and statistics | `/antispam` |
-| `/antispam config` | View all configuration options | `/antispam config` |
-| `/antispam set <option> <value>` | Update spam detection setting | `/antispam set floodMaxIdentical 5` |
-| `/antispam whitelist <alias>` | Exempt user from spam checks | `/antispam whitelist Alice` |
-| `/antispam unwhitelist <alias>` | Remove spam check exemption | `/antispam unwhitelist Alice` |
-| `/antispam reset <alias>` | Reset user's violation count | `/antispam reset Alice` |
-| `/antispam clear <alias>` | Clear user's auto-mute | `/antispam clear Alice` |
-| `/antispam top` | Show top 10 spammers | `/antispam top` |
+| Command                          | Description                       | Example                             |
+| -------------------------------- | --------------------------------- | ----------------------------------- |
+| `/antispam`                      | Show configuration and statistics | `/antispam`                         |
+| `/antispam config`               | View all configuration options    | `/antispam config`                  |
+| `/antispam set <option> <value>` | Update spam detection setting     | `/antispam set floodMaxIdentical 5` |
+| `/antispam whitelist <alias>`    | Exempt user from spam checks      | `/antispam whitelist Alice`         |
+| `/antispam unwhitelist <alias>`  | Remove spam check exemption       | `/antispam unwhitelist Alice`       |
+| `/antispam reset <alias>`        | Reset user's violation count      | `/antispam reset Alice`             |
+| `/antispam clear <alias>`        | Clear user's auto-mute            | `/antispam clear Alice`             |
+| `/antispam top`                  | Show top 10 spammers              | `/antispam top`                     |
 
 **Configuration Options:**
+
 - `floodEnabled` - Enable/disable flood detection (default: true)
 - `floodMaxIdentical` - Max identical messages allowed (default: 3)
 - `linkSpamEnabled` - Enable/disable link spam detection (default: true)
@@ -583,39 +601,40 @@ Automatic spam detection and prevention system with escalating temporary mutes.
 
 Control lobby access with invite codes.
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/invite_on` | Enable invite-only mode | `/invite_on` |
-| `/invite_off` | Disable invite-only mode | `/invite_off` |
-| `/invite_new <uses> <expiry> [notes]` | Create invite code | `/invite_new 10 7d New members` |
-| `/invite_list` | List all invites (paginated) | `/invite_list` |
-| `/invite_revoke <code>` | Deactivate invite code | `/invite_revoke ABC123` |
-| `/invite_activate <code>` | Reactivate invite code | `/invite_activate ABC123` |
-| `/invite_delete <code>` | Permanently delete invite | `/invite_delete ABC123` |
+| Command                               | Description                  | Example                         |
+| ------------------------------------- | ---------------------------- | ------------------------------- |
+| `/invite_on`                          | Enable invite-only mode      | `/invite_on`                    |
+| `/invite_off`                         | Disable invite-only mode     | `/invite_off`                   |
+| `/invite_new <uses> <expiry> [notes]` | Create invite code           | `/invite_new 10 7d New members` |
+| `/invite_list`                        | List all invites (paginated) | `/invite_list`                  |
+| `/invite_revoke <code>`               | Deactivate invite code       | `/invite_revoke ABC123`         |
+| `/invite_activate <code>`             | Reactivate invite code       | `/invite_activate ABC123`       |
+| `/invite_delete <code>`               | Permanently delete invite    | `/invite_delete ABC123`         |
 
 **Expiry formats**: `7d` (7 days), `24h` (24 hours), `2025-12-31` (specific date)
 
 #### 📜 Rules Management
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/rules_add <emoji> <text>` | Add rule to lobby rules | `/rules_add 1️⃣ Be respectful` |
-| `/rules_remove <number>` | Remove rule by number | `/rules_remove 2` |
-| `/rules_clear` | Clear all rules | `/rules_clear` |
-| `/rules_list` | List all rules (admin view) | `/rules_list` |
+| Command                     | Description                 | Example                       |
+| --------------------------- | --------------------------- | ----------------------------- |
+| `/rules_add <emoji> <text>` | Add rule to lobby rules     | `/rules_add 1️⃣ Be respectful` |
+| `/rules_remove <number>`    | Remove rule by number       | `/rules_remove 2`             |
+| `/rules_clear`              | Clear all rules             | `/rules_clear`                |
+| `/rules_list`               | List all rules (admin view) | `/rules_list`                 |
 
 #### 📌 Native Pinned Messages
 
 Pin important messages or announcements that appear at the top of every lobby member's chat using Telegram's native pin system.
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/pin` (reply to message) | Pin that specific lobby message in all chats | Reply to a message: `/pin` |
-| `/pin <text>` | Create and pin an announcement to all members | `/pin 📢 Welcome to the lobby!` |
-| `/unpin <id>` | Unpin message from all chats | `/unpin 3` |
-| `/pinned` | View all pinned messages (public) | `/pinned` |
+| Command                   | Description                                   | Example                         |
+| ------------------------- | --------------------------------------------- | ------------------------------- |
+| `/pin` (reply to message) | Pin that specific lobby message in all chats  | Reply to a message: `/pin`      |
+| `/pin <text>`             | Create and pin an announcement to all members | `/pin 📢 Welcome to the lobby!` |
+| `/unpin <id>`             | Unpin message from all chats                  | `/unpin 3`                      |
+| `/pinned`                 | View all pinned messages (public)             | `/pinned`                       |
 
 **Features:**
+
 - **Two Pin Modes**:
   - **Reply-to-pin**: Pin any existing lobby message
   - **Announcement**: Create new pinned announcement
@@ -626,12 +645,14 @@ Pin important messages or announcements that appear at the top of every lobby me
 - **Individual Control**: Users can unpin in their own chat without affecting others
 
 **How It Works:**
+
 - **Reply Mode**: Admin replies to any lobby message with `/pin` → that message gets pinned in everyone's chat
 - **Announcement Mode**: Admin uses `/pin <text>` → new message sent and pinned to all lobby members
 - Unpinning removes pins from all users' chats at once
 - Each pin has a unique ID for easy management
 
 **Benefits:**
+
 - Pins are always visible at top of chat (native Telegram behavior)
 - More intuitive than command-based viewing
 - Works exactly like regular Telegram pins
@@ -640,13 +661,13 @@ Pin important messages or announcements that appear at the top of every lobby me
 
 #### 🔧 Debug & Maintenance
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/debugmedia` | View media tracking debug info | `/debugmedia` |
-| `/debuglist` | List debug information | `/debuglist` |
-| `/debugcopy` | Copy debug data | `/debugcopy` |
-| `/nuke` | Mass-delete operations (with confirmation) | `/nuke` |
-| `/purge` | Purge operations (with confirmation) | `/purge` |
+| Command       | Description                                | Example       |
+| ------------- | ------------------------------------------ | ------------- |
+| `/debugmedia` | View media tracking debug info             | `/debugmedia` |
+| `/debuglist`  | List debug information                     | `/debuglist`  |
+| `/debugcopy`  | Copy debug data                            | `/debugcopy`  |
+| `/nuke`       | Mass-delete operations (with confirmation) | `/nuke`       |
+| `/purge`      | Purge operations (with confirmation)       | `/purge`      |
 
 ---
 
@@ -657,6 +678,7 @@ Pin important messages or announcements that appear at the top of every lobby me
 When a user sends a message to the bot:
 
 1. **Message Processing**
+
    - Bot receives message from user
    - Checks if user is banned/muted
    - Validates user is in lobby
@@ -665,6 +687,7 @@ When a user sends a message to the bot:
    - Checks content filters
 
 2. **Relay Distribution**
+
    - Message is formatted with sender's icon and alias
    - Sent to ALL lobby members (except sender)
    - 200ms delay between recipients to avoid rate limits
@@ -691,10 +714,10 @@ Users have three status states:
 - **🟡 Idle**: No activity for 15 minutes
 - **⚫ Offline**: No activity for 60 minutes
 
-
 ### Media Support
 
 Supports all Telegram message types:
+
 - ✅ Text messages
 - ✅ Photos
 - ✅ Videos
@@ -719,6 +742,7 @@ Supports all Telegram message types:
 The bot runs compliance checks **daily at midnight** with the following rule:
 
 #### Inactivity Rule
+
 - **Requirement**: Must send at least 1 message every 7 days
 - **Consequence**: Automatic kick from lobby
 - **Exemptions**: Admins, mods, and whitelisted users
@@ -733,6 +757,7 @@ The bot runs compliance checks **daily at midnight** with the following rule:
 ### Automatic Cleanup
 
 Runs **daily at midnight**:
+
 - Old reports (>90 days) deleted
 - Closed polls (>30 days) deleted
 - Relayed messages (24 hours retention, 7 days for warned/banned users)
@@ -778,15 +803,16 @@ Each log entry includes:
 
 **Commands** (available to admins and moderators):
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `/auditlog` or `/audit` | View 20 most recent entries | `/auditlog` |
-| `/auditlog [page]` | Navigate to specific page | `/auditlog 2` |
-| `/auditlog <action>` | Filter by action type | `/auditlog ban` |
+| Command                  | Description                       | Example                |
+| ------------------------ | --------------------------------- | ---------------------- |
+| `/auditlog` or `/audit`  | View 20 most recent entries       | `/auditlog`            |
+| `/auditlog [page]`       | Navigate to specific page         | `/auditlog 2`          |
+| `/auditlog <action>`     | Filter by action type             | `/auditlog ban`        |
 | `/auditlog user <alias>` | View all actions affecting a user | `/auditlog user Alice` |
-| `/auditlog mod <alias>` | View all actions by a moderator | `/auditlog mod Bob` |
+| `/auditlog mod <alias>`  | View all actions by a moderator   | `/auditlog mod Bob`    |
 
 **Available Action Filters:**
+
 - User restrictions: `ban`, `unban`, `mute`, `unmute`, `kick`, `restrict_media`, `unrestrict_media`
 - Role management: `promote`, `demote`, `whitelist_add`
 - Warnings: `warn`, `clear_warnings`, `auto_ban`
@@ -822,23 +848,27 @@ Get comprehensive insights into lobby activity, user engagement, and moderation 
 View overall lobby metrics with `/stats`:
 
 **User Metrics:**
+
 - Total registered users
 - Current lobby members
 - Active users (online/idle)
 - Lobby participation percentage
 
 **Message Metrics:**
+
 - Total messages (all time)
 - Messages today/this week/this month
 - Text vs media message ratio
 - Message type breakdown
 
 **Activity Insights:**
+
 - Top 5 contributors by message count
 - Recent activity levels
 - Engagement trends
 
 **Moderation Summary:**
+
 - Most common moderation actions (last 30 days)
 - Action frequency breakdown
 
@@ -847,12 +877,14 @@ View overall lobby metrics with `/stats`:
 Analyze individual user activity with `/stats user <alias>`:
 
 **Profile Information:**
+
 - User status (online/idle/offline)
 - Role and permissions
 - Lobby membership status
 - Join date and tenure
 
 **Activity Metrics:**
+
 - Total messages sent
 - Text vs media breakdown
 - Reply count
@@ -860,6 +892,7 @@ Analyze individual user activity with `/stats user <alias>`:
 - Last activity timestamp
 
 **Moderation History:**
+
 - Warning count
 - Times moderated
 - Current restrictions (muted/banned/media-restricted)
@@ -868,13 +901,14 @@ Analyze individual user activity with `/stats user <alias>`:
 
 Compare activity across different timeframes:
 
-| Command | Description | Timeframe |
-|---------|-------------|-----------|
-| `/stats day` or `/stats period day` | Last 24 hours | 1 day |
-| `/stats week` or `/stats period week` | Last 7 days | 1 week |
-| `/stats month` or `/stats period month` | Last 30 days | 1 month |
+| Command                                 | Description   | Timeframe |
+| --------------------------------------- | ------------- | --------- |
+| `/stats day` or `/stats period day`     | Last 24 hours | 1 day     |
+| `/stats week` or `/stats period week`   | Last 7 days   | 1 week    |
+| `/stats month` or `/stats period month` | Last 30 days  | 1 month   |
 
 **Period Metrics:**
+
 - Total messages in period
 - New user registrations
 - Moderation actions taken
@@ -890,18 +924,21 @@ Compare activity across different timeframes:
 ### Use Cases
 
 **For Admins:**
+
 - Monitor lobby growth and engagement trends
 - Identify top contributors for recognition
 - Track moderation workload
 - Analyze peak activity times for scheduling
 
 **For User Analysis:**
+
 - Review individual user activity patterns
 - Check user engagement levels
 - Assess moderation history before decisions
 - Verify user status and permissions
 
 **For Community Health:**
+
 - Compare activity across time periods
 - Identify engagement drop-offs
 - Track new member onboarding success
@@ -927,6 +964,7 @@ Automate announcements to be sent at specific times or on recurring schedules, e
 ### Overview
 
 The scheduled announcements system allows admins to:
+
 - **One-time announcements**: Send a message at a specific future date and time
 - **Recurring announcements**: Send messages on a regular schedule (daily, weekly, hourly, etc.)
 - **Flexible targeting**: Send to all users or just lobby members
@@ -943,6 +981,7 @@ Send an announcement at a specific time:
 ```
 
 **Time Formats:**
+
 - `14:30` - Today at 2:30 PM (or tomorrow if time has passed)
 - `tomorrow 14:30` - Tomorrow at 2:30 PM
 - `2025-11-05 14:30` - Specific date and time (YYYY-MM-DD HH:MM)
@@ -951,6 +990,7 @@ Send an announcement at a specific time:
 - `2d` - 2 days from now
 
 **Example:**
+
 ```bash
 /schedule create once 1h Welcome to the lobby! Please read the rules with /rules
 ```
@@ -964,6 +1004,7 @@ Send announcements on a regular schedule:
 ```
 
 **Available Presets:**
+
 - `daily-9am` - Every day at 9:00 AM
 - `daily-12pm` - Every day at 12:00 PM (noon)
 - `daily-6pm` - Every day at 6:00 PM
@@ -977,12 +1018,14 @@ Send announcements on a regular schedule:
 **Custom Cron Patterns:**
 
 You can also use custom cron patterns (format: `minute hour day month weekday`):
+
 - `0 9 * * *` - Every day at 9:00 AM
 - `0 */3 * * *` - Every 3 hours
 - `0 18 * * 5` - Every Friday at 6:00 PM
 - `30 14 1 * *` - 2:30 PM on the 1st of every month
 
 **Example:**
+
 ```bash
 /schedule create recurring daily-9am ☀️ Good morning! Have a great day in the lobby!
 ```
@@ -995,6 +1038,7 @@ Add these flags to customize your announcements:
 - `--notes="text"` - Add private notes for your reference (not shown to users)
 
 **Example with options:**
+
 ```bash
 /schedule create recurring weekly-monday Daily reminder to be respectful! --all --notes="Weekly reminder"
 ```
@@ -1012,6 +1056,7 @@ View all scheduled announcements with their status:
 ```
 
 Shows:
+
 - Active announcements with countdown or schedule
 - Paused announcements
 - Announcement IDs for management
@@ -1026,6 +1071,7 @@ See complete details of a specific announcement:
 ```
 
 Shows:
+
 - Full message text
 - Schedule type and timing
 - Target audience
@@ -1043,6 +1089,7 @@ Temporarily disable an announcement without deleting it:
 ```
 
 Useful for:
+
 - Temporarily disabling seasonal announcements
 - Pausing announcements during maintenance
 - Keeping announcements for later reactivation
@@ -1070,18 +1117,21 @@ Sends a test copy to you (the admin) to verify formatting and content.
 ### How It Works
 
 **One-Time Announcements:**
+
 - Checked every minute for due announcements
 - Automatically sent when scheduled time is reached
 - Automatically disabled after sending
 - Remains in list for reference (can be deleted)
 
 **Recurring Announcements:**
+
 - Set up as cron jobs on bot startup
 - Run according to specified schedule
 - Continue indefinitely until paused or deleted
 - Re-scanned hourly to pick up newly created recurring announcements
 
 **Delivery:**
+
 - Announcements sent to all targeted users individually
 - 100ms delay between recipients to avoid rate limits
 - Failed deliveries logged but don't stop other sends
@@ -1090,6 +1140,7 @@ Sends a test copy to you (the admin) to verify formatting and content.
 ### Audit Trail
 
 All scheduled announcement operations are logged to the audit system:
+
 - `schedule_create_once` - One-time announcement created
 - `schedule_create_recurring` - Recurring announcement created
 - `schedule_pause` - Announcement paused
@@ -1102,18 +1153,21 @@ View logs with `/auditlog schedule_create` or `/auditlog`.
 ### Use Cases
 
 **Community Management:**
+
 - Daily greeting messages to welcome lobby members
 - Weekly reminders about rules and etiquette
 - Scheduled event announcements
 - Regular activity prompts to encourage engagement
 
 **Administrative:**
+
 - Maintenance notifications
 - Feature announcements
 - Policy updates
 - Seasonal messages (holidays, special events)
 
 **Moderation:**
+
 - Periodic rule reminders
 - Community guideline refreshers
 - Reporting instructions
@@ -1149,18 +1203,21 @@ View logs with `/auditlog schedule_create` or `/auditlog`.
 ### Technical Details
 
 **Timezone:**
+
 - Scheduled times use Europe/Berlin timezone by default
 - Adjust the timezone in `src/index.js` if needed
 - One-time announcements use absolute dates (timezone-aware)
 - Recurring announcements follow cron schedule in configured timezone
 
 **Performance:**
+
 - One-time announcements checked every 60 seconds
 - Recurring announcements use node-cron for efficient scheduling
 - New recurring announcements picked up within 1 hour
 - No significant performance impact on bot operation
 
 **Persistence:**
+
 - All announcements stored in MongoDB
 - Survive bot restarts
 - Recurring announcements re-initialized on startup
@@ -1175,6 +1232,7 @@ Automatically greet new members with a customizable welcome message when they jo
 ### Overview
 
 The welcome message system allows admins to:
+
 - **Enable/disable** automatic welcome messages for new members
 - **Customize** the message content to suit your community
 - **Update** the message without disabling/re-enabling
@@ -1201,6 +1259,7 @@ Turn on welcome messages with the default message:
 ```
 
 **Default message:**
+
 ```
 👋 Welcome to the lobby! Feel free to introduce yourself and chat with others. Use /help to see all available commands.
 ```
@@ -1220,6 +1279,7 @@ Change the message without disabling/enabling:
 ```
 
 **Example:**
+
 ```bash
 /welcome set 👋 Hello! Welcome to the lobby! Start chatting with /help to see all commands.
 ```
@@ -1235,6 +1295,7 @@ Turn off automatic welcome messages:
 ### When Welcome Messages Are Sent
 
 Welcome messages are automatically sent to users:
+
 - **After successful `/join`** - When a user joins the lobby
 - **After pinned messages** - If pinned messages exist, welcome message appears after them
 - **One time per join** - Only sent when joining, not on every message
@@ -1242,16 +1303,19 @@ Welcome messages are automatically sent to users:
 ### Use Cases
 
 **Onboarding:**
+
 - Greet new members warmly
 - Direct them to help resources (`/help`)
 - Encourage participation
 
 **Guidance:**
+
 - Point to important commands (`/rules`, `/profile`)
 - Explain lobby etiquette
 - Set expectations for behavior
 
 **Community Building:**
+
 - Create a welcoming atmosphere
 - Encourage introductions
 - Share community values
@@ -1267,16 +1331,19 @@ Welcome messages are automatically sent to users:
 ### Example Welcome Messages
 
 **Simple and friendly:**
+
 ```
 👋 Welcome! Use /help to see all commands and /rules for our guidelines. Enjoy chatting!
 ```
 
 **Community-focused:**
+
 ```
 🎉 Welcome to our lobby! We're excited to have you here. Introduce yourself and use /help if you need anything.
 ```
 
 **Informative:**
+
 ```
 👋 Hello! You've joined the lobby. Key commands: /help (all commands), /rules (guidelines), /profile (your stats). Have fun!
 ```
@@ -1284,6 +1351,7 @@ Welcome messages are automatically sent to users:
 ### Audit Trail
 
 All welcome message operations are logged to the audit system:
+
 - `welcome_enable` - Welcome messages enabled
 - `welcome_disable` - Welcome messages disabled
 - `welcome_update` - Welcome message updated
@@ -1309,6 +1377,7 @@ Search through your own message history to find specific messages, topics, or co
 ### Overview
 
 The message search feature allows users to:
+
 - **Search your own messages** - Find messages you've sent in the lobby
 - **Privacy-first** - You can only search your own messages, never others'
 - **Fast results** - Quick search with highlighted matches
@@ -1325,6 +1394,7 @@ Search your messages with a simple command:
 ```
 
 **Examples:**
+
 ```bash
 /search hello           # Find messages containing "hello"
 /search project update  # Find messages with "project update"
@@ -1334,6 +1404,7 @@ Search your messages with a simple command:
 ### How It Works
 
 **Search Features:**
+
 - **Case-insensitive** - Matches "Hello", "hello", "HELLO" equally
 - **Partial matching** - Finds "meeting" in "meetings", "tomorrow's meeting", etc.
 - **All message types** - Searches text messages and media captions
@@ -1341,12 +1412,14 @@ Search your messages with a simple command:
 - **Privacy guarantee** - Only searches messages where you are the original sender
 
 **What Gets Searched:**
+
 - Text messages you sent
 - Captions on photos, videos, documents you sent
 - Media group captions (albums)
 - All message types with text content
 
 **What Doesn't Get Searched:**
+
 - Messages from other users (privacy protection)
 - Deleted messages (automatically cleaned up)
 - Messages older than expiry (based on TTL settings)
@@ -1354,12 +1427,14 @@ Search your messages with a simple command:
 ### Search Results
 
 Results are displayed with:
+
 - **Message type** - Icon and type name (text, photo, video, etc.)
 - **Timestamp** - How long ago the message was sent
 - **Preview** - First 100 characters with search term highlighted
 - **Match highlighting** - Search terms appear bold and underlined
 
 **Result Format:**
+
 ```
 🔍 Search Results
 Found 5 messages matching "hello"
@@ -1377,6 +1452,7 @@ Just wanted to say **hello** and introduce myself
 ### Privacy & Security
 
 **Your Privacy Is Protected:**
+
 - ✅ You can **only** search messages you sent
 - ✅ Other users **cannot** search your messages
 - ✅ Search queries are **not** logged or stored
@@ -1384,6 +1460,7 @@ Just wanted to say **hello** and introduce myself
 - ✅ No notification sent to others when you search
 
 **Technical Details:**
+
 - Searches use `originalUserId` to filter by sender
 - Query validation prevents injection attacks
 - Results limited to prevent performance issues
@@ -1392,18 +1469,21 @@ Just wanted to say **hello** and introduce myself
 ### Query Limitations
 
 **Minimum Length:** 2 characters
+
 ```bash
 /search hi    # ✅ Valid
 /search h     # ❌ Too short
 ```
 
 **Maximum Length:** 100 characters
+
 ```bash
 /search this is a reasonable search query    # ✅ Valid
 /search [extremely long query over 100 chars...] # ❌ Too long
 ```
 
 **Special Characters:**
+
 - Special regex characters are automatically escaped
 - Safe to search for: `$ ^ * + ? . [ ] { } ( ) |`
 - Searches treat these as literal characters
@@ -1411,16 +1491,19 @@ Just wanted to say **hello** and introduce myself
 ### Use Cases
 
 **Find Past Conversations:**
+
 - Search for specific topics you discussed
 - Recall when you mentioned something
 - Find messages related to projects or events
 
 **Reference Information:**
+
 - Look up facts or links you shared
 - Find media you posted with certain captions
 - Retrieve information from your own messages
 
 **Personal History:**
+
 - Review your participation in discussions
 - Track topics you've contributed to
 - See your most recent messages about a subject
@@ -1433,6 +1516,7 @@ Just wanted to say **hello** and introduce myself
 ```
 
 **Examples:**
+
 ```bash
 /search hello world      # Find "hello world"
 /search "meeting notes"  # Quotes optional, same result
@@ -1450,17 +1534,20 @@ Just wanted to say **hello** and introduce myself
 ### Troubleshooting
 
 **No results found:**
+
 - Check spelling of search terms
 - Try broader search terms (single keyword vs. full phrase)
 - Remember: only YOUR messages are searched
 - Messages may have expired if older than TTL period
 
 **Too many results:**
+
 - Use more specific search terms
 - Add additional keywords to narrow results
 - Results limited to 20 most recent matches
 
 **Search not working:**
+
 - Ensure you're in the lobby (`/join` first)
 - Check query length (2-100 characters)
 - Try simpler search terms without special formatting
@@ -1474,6 +1561,7 @@ Export bot data for backup purposes or GDPR compliance. Administrators can expor
 ### Overview
 
 The backup/export system provides:
+
 - **Data Portability** - Export all bot data for backups or migration
 - **GDPR Compliance** - Export individual user data on request
 - **JSON Format** - Standard, easy-to-parse export format
@@ -1491,6 +1579,7 @@ Export all user information including profiles, activity, and preferences:
 ```
 
 **Includes:**
+
 - User profiles (alias, icon, role, registration date)
 - Activity metrics (messages, status, engagement)
 - Preferences settings (compact mode, notifications)
@@ -1499,6 +1588,7 @@ Export all user information including profiles, activity, and preferences:
 - Current restrictions (mutes, bans, warnings)
 
 **Use Cases:**
+
 - User database backups
 - Migration to new bot instance
 - Analysis of user demographics
@@ -1515,6 +1605,7 @@ Export message history with optional time filtering:
 ```
 
 **Includes:**
+
 - Original message metadata (sender, timestamp, type)
 - Message captions and text content
 - Album IDs for media groups
@@ -1524,6 +1615,7 @@ Export message history with optional time filtering:
 **Privacy Note:** File IDs and actual media files are not included in exports for storage reasons. Only metadata and text/captions are exported.
 
 **Use Cases:**
+
 - Chat history backups
 - Content analysis
 - Archive old messages
@@ -1539,6 +1631,7 @@ Export everything for complete system backup:
 ```
 
 **Includes:**
+
 - **Users** - All user data (same as `/export users`)
 - **Messages** - Message history (filtered by days if specified)
 - **Reports** - All user reports and resolutions
@@ -1550,6 +1643,7 @@ Export everything for complete system backup:
 - **Global Settings** - Bot configuration (invite mode, slowmode, maintenance, etc.)
 
 **Statistics Included:**
+
 - Total reports
 - Total polls
 - Total audit log entries
@@ -1558,6 +1652,7 @@ Export everything for complete system backup:
 - Total scheduled announcements
 
 **Use Cases:**
+
 - Complete system backup before updates
 - Bot migration to new server
 - Disaster recovery
@@ -1572,11 +1667,13 @@ Export specific user's complete data for GDPR compliance:
 ```
 
 **Example:**
+
 ```bash
 /export user alice        # Export Alice's complete data
 ```
 
 **Includes:**
+
 - **Personal Data** - Profile, alias, icon, registration info
 - **Activity** - All activity metrics and message counts
 - **Preferences** - All user preference settings
@@ -1588,6 +1685,7 @@ Export specific user's complete data for GDPR compliance:
 - **Moderation History** - All moderation actions involving them (as moderator or target)
 
 **Privacy & GDPR:**
+
 - Exports only the specified user's data
 - Does not include other users' personal information
 - Complies with GDPR "Right to Data Portability"
@@ -1595,6 +1693,7 @@ Export specific user's complete data for GDPR compliance:
 - Can be provided directly to the user
 
 **Use Cases:**
+
 - GDPR data subject access requests
 - User account deletion (export before deletion)
 - User-requested data export
@@ -1614,12 +1713,14 @@ All exports are delivered as JSON files with the following structure:
 ```
 
 **File Delivery:**
+
 - Exports are sent as document attachments
 - Filename includes export type and timestamp
 - File size displayed in the caption
 - Generation time shown
 
 **Example Filenames:**
+
 - `users_export_1730635200000.json`
 - `messages_export_30d_1730635200000.json`
 - `full_backup_1730635200000.json`
@@ -1639,6 +1740,7 @@ All exports are delivered as JSON files with the following structure:
 ```
 
 **Alias:**
+
 ```bash
 /backup                   # Same as /export
 ```
@@ -1646,18 +1748,21 @@ All exports are delivered as JSON files with the following structure:
 ### Performance & Limitations
 
 **Generation Time:**
+
 - User export: ~1-2 seconds
 - Message export: ~2-5 seconds (depends on history size)
 - Full backup: ~5-15 seconds (comprehensive)
 - GDPR user export: ~2-3 seconds
 
 **File Sizes:**
+
 - User exports: typically 50-500 KB
 - Message exports: varies widely (1-50 MB depending on history)
 - Full backups: largest, can be 10-100 MB+
 - GDPR user exports: typically 10-100 KB per user
 
 **Rate Limits:**
+
 - No rate limit on export commands
 - Large exports may take time to generate
 - Telegram file size limit: 50 MB (automatic for most exports)
@@ -1665,6 +1770,7 @@ All exports are delivered as JSON files with the following structure:
 ### Security & Privacy
 
 **Access Control:**
+
 - ✅ Admin-only command
 - ✅ Requires `role: 'admin'` in database
 - ✅ All export operations logged to audit trail
@@ -1672,6 +1778,7 @@ All exports are delivered as JSON files with the following structure:
 
 **Audit Trail:**
 All export operations are logged with:
+
 - Export type (users, messages, full, user_gdpr)
 - Timestamp of export
 - Admin who performed the export
@@ -1679,12 +1786,14 @@ All export operations are logged with:
 - Export statistics (counts)
 
 **Action Types:**
+
 - `export_users` - User data export
 - `export_messages` - Message history export
 - `export_full` - Full backup export
 - `export_user` - GDPR user export
 
 **Privacy Considerations:**
+
 - User blocks: Only count included in general exports, full IDs only in GDPR export
 - Spam violations: Included in full context
 - Message content: Captions only, no actual media files
@@ -1694,6 +1803,7 @@ All export operations are logged with:
 ### Use Cases
 
 **For Administrators:**
+
 - Regular backups before major updates
 - Data migration to new infrastructure
 - Compliance with data requests
@@ -1701,12 +1811,14 @@ All export operations are logged with:
 - Debugging and analysis
 
 **For GDPR Compliance:**
+
 - Respond to user data access requests
 - Export before account deletion
 - Provide user their complete data
 - Demonstrate transparency
 
 **For Disaster Recovery:**
+
 - Full system backups
 - Restore after data loss
 - Migrate to new bot instance
@@ -1725,16 +1837,19 @@ All export operations are logged with:
 ### Troubleshooting
 
 **Export takes too long:**
+
 - Large databases may take 10-30 seconds
 - Use filtered exports (e.g., `/export messages 30` instead of all messages)
 - Try during low-activity periods
 
 **Export file too large:**
+
 - Filter messages by days to reduce size
 - Export users and messages separately instead of full backup
 - Split exports by time period
 
 **Export fails:**
+
 - Check bot logs for error details
 - Verify MongoDB connection is stable
 - Ensure sufficient disk space
@@ -1833,23 +1948,23 @@ npm test
 
 ### Database Models
 
-| Model | Purpose |
-|-------|---------|
-| `User` | User profiles, roles, restrictions |
-| `Activity` | Activity tracking, status, statistics |
-| `RelayedMessage` | Message relay mapping for threading |
-| `QuoteLink` | Temporary (2-min TTL) relay cache |
-| `Block` | User blocking system |
-| `Report` | User reports to moderators |
-| `Poll` | Poll voting system |
-| `Filter` | Content filters (keywords/regex) |
-| `Setting` | Global settings (singleton) |
-| `Invite` | Invite codes |
-| `PinnedMessage` | Native pinned messages (announcements & relayed) |
-| `Preferences` | User preferences (compact mode, notifications) |
-| `AuditLog` | Moderation action audit trail |
-| `SpamDetection` | Anti-spam violation tracking |
-| `Instance` | Bot instance tracking for metrics |
+| Model            | Purpose                                          |
+| ---------------- | ------------------------------------------------ |
+| `User`           | User profiles, roles, restrictions               |
+| `Activity`       | Activity tracking, status, statistics            |
+| `RelayedMessage` | Message relay mapping for threading              |
+| `QuoteLink`      | Temporary (2-min TTL) relay cache                |
+| `Block`          | User blocking system                             |
+| `Report`         | User reports to moderators                       |
+| `Poll`           | Poll voting system                               |
+| `Filter`         | Content filters (keywords/regex)                 |
+| `Setting`        | Global settings (singleton)                      |
+| `Invite`         | Invite codes                                     |
+| `PinnedMessage`  | Native pinned messages (announcements & relayed) |
+| `Preferences`    | User preferences (compact mode, notifications)   |
+| `AuditLog`       | Moderation action audit trail                    |
+| `SpamDetection`  | Anti-spam violation tracking                     |
+| `Instance`       | Bot instance tracking for metrics                |
 
 ### Code Quality Features
 
@@ -1869,23 +1984,27 @@ npm test
 ### Bot won't start
 
 **Error: "BOT_TOKEN is required"**
+
 - Make sure your `.env` file exists and has `BOT_TOKEN=...`
 - Verify the token is correct (from @BotFather)
 - No quotes needed around the token
 
 **Error: "MongoDB connection failed"**
+
 - Check your `MONGO_URI` in `.env`
 - For local MongoDB: Make sure MongoDB service is running
 - For Atlas: Verify your IP is whitelisted
 - Test connection string format
 
 **Error: "Cannot find module..."**
+
 - Run `npm install` to install dependencies
 - Delete `node_modules` and `package-lock.json`, then run `npm install` again
 
 ### Messages not relaying
 
 **Messages don't appear for other users:**
+
 - Make sure users have joined with `/join`
 - Check if sender is muted or banned (`/whois <alias>`)
 - Verify maintenance mode isn't enabled (`/maintenance`)
@@ -1893,29 +2012,34 @@ npm test
 - Check content filters (`/filter list`)
 
 **Reply threading not working:**
+
 - Reply threading only works for messages sent through the bot
 - Messages older than 24 hours may not have stored references
 
 ### Users can't join
 
 **"Invite code required":**
+
 - Check if invite-only mode is enabled (`/invite_on`)
 - Generate an invite code: `/invite_new 10 7d`
 - Disable invite-only: `/invite_off`
 
 **"Alias already taken":**
+
 - User needs to choose a different alias
 - Check existing aliases with `/whois`
 
 ### Performance issues
 
 **Bot is slow or timing out:**
+
 - Check MongoDB connection latency
 - For cloud MongoDB: Consider upgrading tier
 - Check server resources (CPU/RAM)
 - Review logs in `logs/combined.log`
 
 **Rate limit errors:**
+
 - Bot automatically handles Telegram rate limits
 - Consider increasing delays in relay system
 - Reduce message frequency in high-traffic scenarios
@@ -1923,16 +2047,19 @@ npm test
 ### Common Issues
 
 **Custom emoji not showing:**
+
 - Custom emojis require Telegram Premium
 - Non-premium users see the fallback emoji
 - This is expected behavior
 
 **Message edits not updating:**
+
 - Edit relay requires polling mode
 - Only lobby members' edits are relayed
 - Banned/muted users' edits are ignored
 
 **Chat history showing duplicates:**
+
 - Message deduplication is automatic
 - If duplicates appear, report as bug
 
@@ -1994,6 +2121,7 @@ This project is licensed under the **ISC License**.
 ## 🙏 Credits
 
 Built with:
+
 - [Telegraf](https://telegraf.js.org/) - Telegram Bot API framework
 - [Mongoose](https://mongoosejs.com/) - MongoDB ODM
 - [Winston](https://github.com/winstonjs/winston) - Logging library
@@ -2021,6 +2149,6 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history and updates.
 
 **Made with ❤️ for anonymous communication**
 
-*Star ⭐ this repository if you find it useful!*
+_Star ⭐ this repository if you find it useful!_
 
 </div>
