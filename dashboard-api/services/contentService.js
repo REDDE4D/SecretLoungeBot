@@ -124,9 +124,20 @@ export async function createInvite(inviteData, moderatorId) {
   // Generate unique code
   const code = crypto.randomBytes(6).toString("hex").toUpperCase();
 
+  // Parse expiresAt if provided (converts "7d", "24h" etc to Date)
+  const parsedData = { ...inviteData };
+  if (parsedData.expiresAt) {
+    const { parseExpiry } = await import("../utils/parsers.js");
+    const expiryDate = parseExpiry(parsedData.expiresAt);
+    if (expiryDate === null && parsedData.expiresAt !== "none") {
+      throw new Error(`Invalid expiry format: ${parsedData.expiresAt}`);
+    }
+    parsedData.expiresAt = expiryDate;
+  }
+
   const invite = await getInvite().create({
     code,
-    ...inviteData,
+    ...parsedData,
     createdBy: moderatorId,
   });
 
