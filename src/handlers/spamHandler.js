@@ -392,16 +392,45 @@ async function handleViolation(userId, violation) {
  * Call this AFTER message is allowed (for pattern tracking)
  */
 async function trackMessage(userId, messageText) {
-  try {
-    const record = await SpamDetection.getOrCreate(userId);
+  const maxRetries = 3;
+  let attempt = 0;
 
-    const hasLinks = extractUrls(messageText || '').length > 0;
+  while (attempt < maxRetries) {
+    try {
+      const record = await SpamDetection.getOrCreate(userId);
 
-    record.trackMessage(messageText || '', hasLinks);
+      const hasLinks = extractUrls(messageText || '').length > 0;
 
-    await record.save();
-  } catch (error) {
-    logger.error('Error tracking message for spam detection', { userId, error: error.message });
+      record.trackMessage(messageText || '', hasLinks);
+
+      await record.save();
+      return; // Success
+    } catch (error) {
+      attempt++;
+
+      // Check if it's a version conflict error
+      const isVersionError = error.message && (
+        error.message.includes('No matching document found') ||
+        error.message.includes('version') ||
+        error.name === 'VersionError'
+      );
+
+      if (isVersionError && attempt < maxRetries) {
+        // Exponential backoff: 10ms, 20ms, 40ms
+        const delay = 10 * Math.pow(2, attempt - 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue; // Retry
+      }
+
+      // Not a version error or out of retries
+      logger.error('Error tracking message for spam detection', {
+        userId,
+        error: error.message,
+        attempt,
+        isVersionError
+      });
+      return; // Give up
+    }
   }
 }
 

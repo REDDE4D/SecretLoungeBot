@@ -67,50 +67,82 @@ function scheduleStatusTimers(userId, baseTs) {
 }
 
 export async function trackMessage(userId, isMedia, isReply = false) {
-  const now = new Date();
-  const today = new Date().toISOString().slice(0, 10);
+  const maxRetries = 3;
+  let attempt = 0;
 
-  let act = await Activity.findOne({ userId });
-  if (!act) {
-    act = await Activity.create({ userId, status: "offline" });
-  }
+  while (attempt < maxRetries) {
+    try {
+      const now = new Date();
+      const today = new Date().toISOString().slice(0, 10);
 
-  // media counters (unchanged)
-  const joinedAgoMs = now.getTime() - act.firstSeen.getTime();
-  const FIRST_24H_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
-  if (isMedia) {
-    if (joinedAgoMs < FIRST_24H_MS) {
-      act.mediaCounts.first24h += 1;
+      let act = await Activity.findOne({ userId });
+      if (!act) {
+        act = await Activity.create({ userId, status: "offline" });
+      }
+
+      // media counters (unchanged)
+      const joinedAgoMs = now.getTime() - act.firstSeen.getTime();
+      const FIRST_24H_MS = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+      if (isMedia) {
+        if (joinedAgoMs < FIRST_24H_MS) {
+          act.mediaCounts.first24h += 1;
+        }
+        act.mediaCounts.byDate.set(
+          today,
+          (act.mediaCounts.byDate.get(today) || 0) + 1
+        );
+      }
+
+      // Profile statistics tracking
+      act.totalMessages = (act.totalMessages || 0) + 1;
+      if (isReply) {
+        act.totalReplies = (act.totalReplies || 0) + 1;
+      }
+      if (isMedia) {
+        act.totalMediaMessages = (act.totalMediaMessages || 0) + 1;
+      } else {
+        act.totalTextMessages = (act.totalTextMessages || 0) + 1;
+      }
+
+      act.lastActive = now;
+
+      // transition to ONLINE if not already
+      const wasStatus = act.status || "offline";
+      if (wasStatus !== "online") {
+        await setStatus(act, "online");
+      } else {
+        await act.save(); // still persist lastActive for online users
+      }
+
+      // (re)schedule idle/offline timers based on this activity time
+      scheduleStatusTimers(userId, act.lastOnlineChange);
+      return; // Success
+    } catch (error) {
+      attempt++;
+
+      // Check if it's a version conflict error
+      const isVersionError = error.message && (
+        error.message.includes('No matching document found') ||
+        error.message.includes('version') ||
+        error.name === 'VersionError'
+      );
+
+      if (isVersionError && attempt < maxRetries) {
+        // Exponential backoff: 10ms, 20ms, 40ms
+        const delay = 10 * Math.pow(2, attempt - 1);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue; // Retry
+      }
+
+      // Not a version error or out of retries
+      console.error(`[activity] Error tracking message for ${userId}:`, {
+        error: error.message,
+        attempt,
+        isVersionError
+      });
+      return; // Give up
     }
-    act.mediaCounts.byDate.set(
-      today,
-      (act.mediaCounts.byDate.get(today) || 0) + 1
-    );
   }
-
-  // Profile statistics tracking
-  act.totalMessages = (act.totalMessages || 0) + 1;
-  if (isReply) {
-    act.totalReplies = (act.totalReplies || 0) + 1;
-  }
-  if (isMedia) {
-    act.totalMediaMessages = (act.totalMediaMessages || 0) + 1;
-  } else {
-    act.totalTextMessages = (act.totalTextMessages || 0) + 1;
-  }
-
-  act.lastActive = now;
-
-  // transition to ONLINE if not already
-  const wasStatus = act.status || "offline";
-  if (wasStatus !== "online") {
-    await setStatus(act, "online");
-  } else {
-    await act.save(); // still persist lastActive for online users
-  }
-
-  // (re)schedule idle/offline timers based on this activity time
-  scheduleStatusTimers(userId, act.lastOnlineChange);
 }
 
 export async function getActivity(id) {
@@ -138,7 +170,11 @@ export async function resetDailyCounters() {
   for (const a of all) {
     if (!a.mediaCounts.byDate.has(today)) {
       a.mediaCounts.byDate.set(today, 0);
-      await a.save();
+      try {
+        await a.save();
+      } catch (error) {
+        console.error(`[activity] Error resetting daily counter for ${a.userId}:`, error.message);
+      }
     }
   }
 }
