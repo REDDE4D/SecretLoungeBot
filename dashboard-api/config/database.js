@@ -52,6 +52,7 @@ export async function connectDatabase() {
       { path: "../models/Session.js", name: "Session" },
       { path: "../models/LoginAttempt.js", name: "LoginAttempt" },
       { path: "../models/LoginToken.js", name: "LoginToken" },
+      { path: "../models/BotLog.js", name: "BotLog" },
     ];
 
     for (const { path, name } of models) {

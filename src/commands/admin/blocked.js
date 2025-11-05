@@ -53,7 +53,7 @@ export function register(botInstance) {
           : "Unknown";
         const escapedDate = escapeMarkdownV2(blockedDate);
 
-        message += `• ${alias} \\(`${userId}`\\)\n`;
+        message += `• ${alias} \\(\`${userId}\`\\)\n`;
         message += `  Blocked: ${escapedDate}\n`;
 
         // Check if they were in lobby when they blocked

@@ -14,6 +14,7 @@ import {
   Lock,
   LogOut,
   Link as LinkIcon,
+  ScrollText,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -30,9 +31,10 @@ const navItems: NavItem[] = [
   { label: 'Users', href: '/dashboard/users', icon: Users, permission: 'users.view' },
   { label: 'Moderation', href: '/dashboard/moderation', icon: Shield, permission: 'moderation.view_reports' },
   { label: 'Content', href: '/dashboard/content', icon: FileText, permission: 'content.view_filters' },
-  { label: 'Links', href: '/dashboard/links', icon: LinkIcon },
+  { label: 'Links', href: '/dashboard/links', icon: LinkIcon, permission: 'links.view' },
   { label: 'Analytics', href: '/dashboard/analytics', icon: BarChart3, permission: 'stats.view_overview' },
   { label: 'Audit Log', href: '/dashboard/audit', icon: FileBox, permission: 'moderation.view_audit' },
+  { label: 'Bot Logs', href: '/dashboard/logs', icon: ScrollText, permission: 'logs.view_bot' },
   { label: 'Settings', href: '/dashboard/settings', icon: Settings, permission: 'settings.view' },
   { label: 'Permissions', href: '/dashboard/permissions', icon: Lock, permission: 'permissions.view' },
 ];

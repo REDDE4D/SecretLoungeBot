@@ -60,6 +60,14 @@ export const PERMISSIONS = {
   MODERATION_VIEW_AUDIT: "moderation.view_audit",
   MODERATION_EXPORT_AUDIT: "moderation.export_audit",
 
+  // Logs Permissions
+  LOGS_VIEW_BOT: "logs.view_bot",
+  LOGS_EXPORT: "logs.export",
+
+  // Links Permissions
+  LINKS_VIEW: "links.view",
+  LINKS_MANAGE: "links.manage",
+
   // Permission Management
   PERMISSIONS_VIEW: "permissions.view",
   PERMISSIONS_MANAGE_ROLES: "permissions.manage_roles",
@@ -96,11 +104,19 @@ export const ROLE_PERMISSIONS = {
     // Moderation tools
     PERMISSIONS.MODERATION_VIEW_REPORTS,
     PERMISSIONS.MODERATION_RESOLVE_REPORTS,
+    PERMISSIONS.MODERATION_VIEW_AUDIT,
 
     // Content viewing (no management)
     PERMISSIONS.CONTENT_VIEW_FILTERS,
     PERMISSIONS.CONTENT_VIEW_INVITES,
     PERMISSIONS.CONTENT_VIEW_PINS,
+
+    // Logs viewing
+    PERMISSIONS.LOGS_VIEW_BOT,
+
+    // Links viewing and management
+    PERMISSIONS.LINKS_VIEW,
+    PERMISSIONS.LINKS_MANAGE,
 
     // Settings viewing only
     PERMISSIONS.SETTINGS_VIEW,
