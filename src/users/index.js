@@ -1,5 +1,7 @@
 import { User } from "../models/User.js";
 import bot from "../core/bot.js";
+import { ROLE_PERMISSIONS } from "../../dashboard-api/config/permissions.js";
+import * as roleService from "../services/roleService.js";
 
 export async function registerUser(id, alias = null) {
   // Check if user already exists
@@ -225,6 +227,26 @@ export async function getAllUserMeta() {
     map.set(user._id, user);
   }
   return map;
+}
+
+/**
+ * Get all permissions for a user (system role + custom roles)
+ * Merges permissions from system roles and custom roles
+ * @param {string} userId - User ID
+ * @returns {Promise<string[]>} Array of permission strings
+ */
+export async function getUserPermissions(userId) {
+  const user = await User.findById(userId);
+  if (!user) return [];
+
+  // Get system role permissions
+  const systemPerms = ROLE_PERMISSIONS[user.role] || [];
+
+  // Get custom role permissions
+  const customPerms = await roleService.getUserPermissions(userId);
+
+  // Merge and deduplicate
+  return [...new Set([...systemPerms, ...customPerms])];
 }
 
 export { deleteUserData } from "./deleteUser.js";

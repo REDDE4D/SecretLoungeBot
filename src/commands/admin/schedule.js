@@ -590,4 +590,4 @@ function register(bot) {
   });
 }
 
-export { meta, register, sendScheduledAnnouncement };
+export { register, sendScheduledAnnouncement };

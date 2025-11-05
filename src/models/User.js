@@ -14,10 +14,16 @@ const userSchema = new mongoose.Schema({
     enum: ["admin", "mod", "whitelist", null],
     default: null,
   },
+  customRoles: {
+    type: [String], // Array of custom role IDs
+    default: [],
+    index: true,
+  },
   mutedUntil: { type: Date, default: null },
   bannedUntil: { type: Date, default: null },
   warnings: { type: Number, default: 0 },
   mediaRestricted: { type: Boolean, default: false },
+  canPostLinks: { type: Boolean, default: false },
 });
 
 // Compound index for lobby member queries with role filtering

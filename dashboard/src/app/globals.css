@@ -1,0 +1,218 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Base colors */
+    --background: 240 20% 99%;
+    --foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Primary colors - Vibrant blue/purple gradient */
+    --primary: 250 95% 63%;
+    --primary-foreground: 0 0% 100%;
+    --primary-light: 250 100% 70%;
+    --primary-dark: 250 90% 55%;
+
+    /* Secondary & accent - Purple/pink tones */
+    --secondary: 280 60% 96%;
+    --secondary-foreground: 280 70% 20%;
+    --accent: 280 60% 96%;
+    --accent-foreground: 280 70% 20%;
+    --accent-vibrant: 280 90% 65%;
+
+    /* Muted tones */
+    --muted: 240 10% 96%;
+    --muted-foreground: 240 4% 46%;
+
+    /* Status colors */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 76% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    /* UI elements */
+    --border: 240 10% 90%;
+    --input: 240 10% 90%;
+    --ring: 250 95% 63%;
+    --radius: 0.75rem;
+
+    /* Gradient stops for backgrounds */
+    --gradient-from: 250 100% 97%;
+    --gradient-to: 280 100% 98%;
+  }
+
+  .dark {
+    /* Base colors - Soft dark gray with subtle blue tone */
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 14%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 14%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary colors - Bright blue/purple for contrast */
+    --primary: 250 95% 68%;
+    --primary-foreground: 222 47% 11%;
+    --primary-light: 250 100% 75%;
+    --primary-dark: 250 90% 60%;
+
+    /* Secondary & accent - Deep purple tones */
+    --secondary: 222 47% 18%;
+    --secondary-foreground: 210 40% 98%;
+    --accent: 222 47% 18%;
+    --accent-foreground: 210 40% 98%;
+    --accent-vibrant: 280 85% 65%;
+
+    /* Muted tones */
+    --muted: 222 47% 18%;
+    --muted-foreground: 215 20% 65%;
+
+    /* Status colors - Adjusted for dark mode */
+    --destructive: 0 75% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142 70% 50%;
+    --success-foreground: 222 47% 11%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 222 47% 11%;
+
+    /* UI elements */
+    --border: 222 47% 20%;
+    --input: 222 47% 20%;
+    --ring: 250 95% 68%;
+
+    /* Gradient stops for dark backgrounds */
+    --gradient-from: 222 47% 12%;
+    --gradient-to: 280 60% 15%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    @apply transition-colors duration-300;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-muted;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+@layer components {
+  /* Glassmorphism effects */
+  .glass {
+    @apply bg-card/80 backdrop-blur-xl border border-border/50;
+  }
+
+  .glass-strong {
+    @apply bg-card/90 backdrop-blur-2xl border border-border/60;
+  }
+
+  /* Gradient backgrounds */
+  .gradient-bg {
+    background: linear-gradient(135deg, hsl(var(--gradient-from)), hsl(var(--gradient-to)));
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--accent-vibrant)));
+  }
+
+  .gradient-card {
+    @apply bg-gradient-to-br from-card via-card to-muted/30;
+  }
+
+  /* Enhanced shadows */
+  .shadow-glow {
+    box-shadow: 0 0 20px -5px hsl(var(--primary) / 0.3);
+  }
+
+  .shadow-glow-accent {
+    box-shadow: 0 0 25px -5px hsl(var(--accent-vibrant) / 0.4);
+  }
+
+  /* Animation utilities */
+  .animate-in {
+    animation: slideInUp 0.3s ease-out;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.2s ease-out;
+  }
+}
+
+@layer utilities {
+  /* Text gradients */
+  .text-gradient {
+    background-image: linear-gradient(to right, hsl(var(--primary)), hsl(var(--accent-vibrant)));
+    @apply bg-clip-text text-transparent;
+  }
+
+  /* Hover lift effect */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg;
+  }
+
+  /* Smooth transitions */
+  .transition-smooth {
+    @apply transition-all duration-300 ease-in-out;
+  }
+}
+
+/* Keyframe animations */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}

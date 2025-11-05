@@ -3,6 +3,7 @@ import Invite from "../../models/Invite.js";
 import PinnedMessage from "../../models/PinnedMessage.js";
 import { joinLobby, leaveLobby, getUserMeta, registerUser } from "../../users/index.js";
 import { escapeHTML } from "../../utils/sanitize.js";
+import { convertToTelegramHTML, hasHTMLFormatting } from "../../utils/telegramHtml.js";
 
 export const meta = {
   commands: ["join", "j", "leave", "l"],
@@ -79,7 +80,15 @@ export function register(bot) {
       // Send welcome message if enabled
       try {
         if (setting.welcomeEnabled && setting.welcomeMessage) {
-          await ctx.reply(setting.welcomeMessage);
+          // Check if message contains HTML formatting
+          if (hasHTMLFormatting(setting.welcomeMessage)) {
+            // Sanitize and send as HTML
+            const sanitizedHtml = convertToTelegramHTML(setting.welcomeMessage);
+            await ctx.replyWithHTML(sanitizedHtml);
+          } else {
+            // Send as plain text
+            await ctx.reply(setting.welcomeMessage);
+          }
         }
       } catch (err) {
         // Silently fail - don't interrupt the user experience

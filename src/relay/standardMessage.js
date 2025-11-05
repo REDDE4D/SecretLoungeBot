@@ -93,6 +93,21 @@ export async function relayStandardMessage(
     else type = "other";
   }
 
+  // Save sender's original message for reaction tracking
+  await RelayedMessage.create({
+    userId: senderId,
+    chatId: senderId,
+    messageId: m.message_id,
+    originalUserId: senderId,
+    originalMsgId: m.message_id,
+    originalItemMsgId: m.message_id,
+    type,
+    fileId: media || null,
+    caption: m.caption || (hasText ? m.text : "") || "",
+    albumId: null,
+    expiresAt,
+  });
+
   // Build header with icon and alias
   const header = `${renderIconHTML(senderIcon)} <b>${escapeHTML(senderAlias)}</b>`;
 

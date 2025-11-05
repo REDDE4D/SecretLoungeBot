@@ -1,6 +1,7 @@
 // src/commands/admin/welcome.js
 import Setting from "../../models/Setting.js";
 import logger from "../../utils/logger.js";
+import { convertToTelegramHTML, hasHTMLFormatting } from "../../utils/telegramHtml.js";
 
 export const meta = {
   commands: ["welcome"],
@@ -29,12 +30,16 @@ export function register(bot) {
           );
         }
 
-        return ctx.reply(
+        // Display current welcome message
+        const messagePreview = hasHTMLFormatting(setting.welcomeMessage)
+          ? convertToTelegramHTML(setting.welcomeMessage)
+          : setting.welcomeMessage;
+
+        return ctx.replyWithHTML(
           `✅ Welcome messages are currently ENABLED\n\n` +
-            `📢 New members see:\n` +
-            `"${setting.welcomeMessage}"\n\n` +
-            `<i>This message is sent automatically when users successfully join the lobby</i>`,
-          { parse_mode: "HTML" }
+            `📢 New members see:\n\n` +
+            `${messagePreview}\n\n` +
+            `<i>This message is sent automatically when users successfully join the lobby</i>`
         );
       }
 
@@ -59,12 +64,16 @@ export function register(bot) {
           messageLength: message.length
         });
 
-        return ctx.reply(
+        // Display enabled message with preview
+        const messagePreview = hasHTMLFormatting(message)
+          ? convertToTelegramHTML(message)
+          : message;
+
+        return ctx.replyWithHTML(
           `✅ Welcome messages ENABLED\n\n` +
-            `📢 New members will see:\n` +
-            `"${message}"\n\n` +
-            `<i>This message will be sent automatically when users join the lobby</i>`,
-          { parse_mode: "HTML" }
+            `📢 New members will see:\n\n` +
+            `${messagePreview}\n\n` +
+            `<i>This message will be sent automatically when users join the lobby</i>`
         );
       }
 
@@ -116,12 +125,16 @@ export function register(bot) {
           wasEnabled: setting?.welcomeEnabled || false
         });
 
-        return ctx.reply(
+        // Display updated message with preview
+        const messagePreview = hasHTMLFormatting(message)
+          ? convertToTelegramHTML(message)
+          : message;
+
+        return ctx.replyWithHTML(
           `✅ Welcome message UPDATED\n\n` +
-            `📢 New members will see:\n` +
-            `"${message}"\n\n` +
-            `<i>Status: ${setting?.welcomeEnabled ? 'ENABLED' : 'DISABLED'}</i>`,
-          { parse_mode: "HTML" }
+            `📢 New members will see:\n\n` +
+            `${messagePreview}\n\n` +
+            `<i>Status: ${setting?.welcomeEnabled ? 'ENABLED' : 'DISABLED'}</i>`
         );
       }
 

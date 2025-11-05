@@ -16,6 +16,23 @@ export function register(bot) {
   // Promote handler
   bot.command("promote", async (ctx) => {
     try {
+      // Show deprecation notice
+      const deprecationNotice = `⚠️ *DEPRECATED* ⚠️
+
+This command is deprecated and will be removed in a future version\\.
+
+Please use the new role commands:
+• \`/setrole @user admin\` \\- Promote to admin
+• \`/setrole @user mod\` \\- Promote to moderator
+• \`/removerole @user\` \\- Remove role
+• \`/clearroles @user\` \\- Remove all roles
+
+Type \`/help\` for more information\\.
+
+*Continuing with legacy command\\.\\.\\.*`;
+
+      await ctx.reply(deprecationNotice, { parse_mode: "MarkdownV2" });
+
       const args = ctx.message.text.trim().split(" ").slice(1);
 
       // First arg might be alias or role (if replying)
@@ -36,7 +53,7 @@ export function register(bot) {
 
       const result = await setRole(userId, roleName);
 
-      logger.logModeration("promote", ctx.from.id, userId, { role: roleName });
+      logger.logModeration("promote", ctx.from.id, userId, { role: roleName, deprecated: true });
 
       ctx.reply(escapeMarkdownV2(result), { parse_mode: "MarkdownV2" });
     } catch (err) {
@@ -49,13 +66,29 @@ export function register(bot) {
   // Demote handler
   bot.command("demote", async (ctx) => {
     try {
+      // Show deprecation notice
+      const deprecationNotice = `⚠️ *DEPRECATED* ⚠️
+
+This command is deprecated and will be removed in a future version\\.
+
+Please use the new role commands:
+• \`/removerole @user <role>\` \\- Remove specific role
+• \`/clearroles @user\` \\- Remove all roles
+• \`/setrole @user <role>\` \\- Assign role
+
+Type \`/help\` for more information\\.
+
+*Continuing with legacy command\\.\\.\\.*`;
+
+      await ctx.reply(deprecationNotice, { parse_mode: "MarkdownV2" });
+
       const args = ctx.message.text.trim().split(" ").slice(1);
       const aliasOrNothing = args[0];
 
       const userId = await resolveTargetUser(ctx, aliasOrNothing);
       const result = await setRole(userId, null);
 
-      logger.logModeration("demote", ctx.from.id, userId);
+      logger.logModeration("demote", ctx.from.id, userId, { deprecated: true });
 
       ctx.reply(escapeMarkdownV2(result), { parse_mode: "MarkdownV2" });
     } catch (err) {

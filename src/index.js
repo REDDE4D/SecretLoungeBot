@@ -26,11 +26,11 @@ await connectMongo();
 const ADMIN_ID = process.env.ADMIN_ID;
 const ERROR_NOTIFICATION_ID = process.env.ERROR_NOTIFICATION_ID || ADMIN_ID;
 
-// Initialize spam detection handler
-await spamHandler.initialize();
-
-// Register all command modules
-await setupCommands(bot);
+// Initialize spam detection handler and register commands in parallel
+await Promise.all([
+  spamHandler.initialize(),
+  setupCommands(bot)
+]);
 
 // Register message relay
 registerHandlers(bot);
@@ -250,7 +250,9 @@ setupRecurringAnnouncements();
 setInterval(setupRecurringAnnouncements, 60 * 60 * 1000);
 
 // Launch the bot
-bot.launch();
+bot.launch({
+  allowedUpdates: ['message', 'edited_message', 'message_reaction']
+});
 
 // Graceful shutdown handlers
 process.once("SIGINT", () => {

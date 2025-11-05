@@ -21,11 +21,15 @@ const AuditLogSchema = new mongoose.Schema(
         "bulk_kick",
         "restrict_media",
         "unrestrict_media",
+        "media_restrict",
+        "media_unrestrict",
+        "unrestrict",
 
         // Role management
         "promote",
         "demote",
         "whitelist_add",
+        "role_change",
 
         // Warning system
         "warn",
@@ -37,8 +41,11 @@ const AuditLogSchema = new mongoose.Schema(
 
         // Content management
         "filter_add",
+        "filter_create",
         "filter_remove",
+        "filter_delete",
         "filter_toggle",
+        "filter_update",
         "slowmode_enable",
         "slowmode_disable",
         "maintenance_enable",
@@ -49,6 +56,8 @@ const AuditLogSchema = new mongoose.Schema(
         "rule_add",
         "rule_remove",
         "rule_clear",
+        "rules_update",
+        "spam_config_update",
         "pin_create",
         "pin_delete",
 
@@ -67,9 +76,11 @@ const AuditLogSchema = new mongoose.Schema(
         // Scheduled announcements
         "schedule_create_once",
         "schedule_create_recurring",
+        "scheduled_announcement_create",
         "schedule_pause",
         "schedule_resume",
         "schedule_delete",
+        "scheduled_announcement_delete",
         "schedule_send",
 
         // Backup/Export

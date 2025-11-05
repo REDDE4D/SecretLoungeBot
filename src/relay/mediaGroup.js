@@ -162,6 +162,24 @@ async function relayGroup(id, ctx, recipientsOverride) {
   // Calculate expiration for this album based on sender's compliance status
   const expiresAt = await calculateExpiresAt(g.senderId);
 
+  // Save sender's original media group items for reaction tracking
+  for (let i = 0; i < g.items.length; i++) {
+    const src = g.items[i];
+    await RelayedMessage.create({
+      userId: g.senderId,
+      chatId: g.senderId,
+      messageId: src.originalItemMsgId,
+      originalUserId: g.senderId,
+      originalMsgId: g.originalMsgId,
+      originalItemMsgId: src.originalItemMsgId,
+      type: src.type || "other",
+      fileId: src.media,
+      caption: src.caption || "",
+      albumId: g.albumId,
+      expiresAt,
+    });
+  }
+
   for (const uid of recipients) {
     try {
       // Get recipient's preferences

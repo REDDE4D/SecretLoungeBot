@@ -5,7 +5,7 @@ import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 
 export const meta = {
   commands: ["whois", "w", "userinfo", "ui"],
-  category: "mod",
+  category: "admin",
   roleRequired: "owner",
   description: "Identify message sender or get user info (owner only)",
   usage: "/whois [alias|reply] or /userinfo <alias|reply>",
@@ -34,18 +34,26 @@ export function register(bot) {
       // Trim the alias to prevent whitespace issues
       const cleanAlias = alias.trim();
       if (!cleanAlias) {
-        return ctx.reply("❌ Please provide a valid alias or reply to a message\\.", {
-          parse_mode: "MarkdownV2",
-        });
+        return ctx.reply(
+          "❌ Please provide a valid alias or reply to a message\\.",
+          {
+            parse_mode: "MarkdownV2",
+          }
+        );
       }
 
       const { findUserIdByAlias } = await import("../../users/index.js");
       targetId = await findUserIdByAlias(cleanAlias);
 
       if (!targetId) {
-        return ctx.reply(`❌ User "${escapeMarkdownV2(cleanAlias)}" not found\\. Make sure they have set an alias\\.`, {
-          parse_mode: "MarkdownV2",
-        });
+        return ctx.reply(
+          `❌ User "${escapeMarkdownV2(
+            cleanAlias
+          )}" not found\\. Make sure they have set an alias\\.`,
+          {
+            parse_mode: "MarkdownV2",
+          }
+        );
       }
     }
 
@@ -56,8 +64,8 @@ export function register(bot) {
     }
 
     // Get user metadata from database
-    const meta = await getUserMeta(targetId);
-    if (!meta) {
+    const userMeta = await getUserMeta(targetId);
+    if (!userMeta) {
       return ctx.reply("❌ User not found in database\\.", {
         parse_mode: "MarkdownV2",
       });
@@ -95,11 +103,14 @@ export function register(bot) {
     lines.push("*Lobby Info:*");
     const aliasRaw = await getAlias(targetId);
     lines.push(`• Alias: *${escapeMarkdownV2(aliasRaw || "N/A")}*`);
-    lines.push(`• In Lobby: ${meta.inLobby ? "✅ Yes" : "❌ No"}`);
+    lines.push(`• In Lobby: ${userMeta.inLobby ? "✅ Yes" : "❌ No"}`);
 
     // Role & Permissions
-    const role = meta.role || "user";
-    const roleDisplay = role === "user" ? "Regular User" : role.charAt(0).toUpperCase() + role.slice(1);
+    const role = userMeta.role || "user";
+    const roleDisplay =
+      role === "user"
+        ? "Regular User"
+        : role.charAt(0).toUpperCase() + role.slice(1);
     lines.push(`• Role: ${escapeMarkdownV2(roleDisplay)}`);
 
     // Status & Activity
@@ -108,24 +119,36 @@ export function register(bot) {
       lines.push("*Activity & Status:*");
       lines.push(`• Status: ${escapeMarkdownV2(activity.status || "unknown")}`);
       if (activity.lastActive) {
-        lines.push(`• Last Active: ${escapeMarkdownV2(new Date(activity.lastActive).toLocaleString())}`);
+        lines.push(
+          `• Last Active: ${escapeMarkdownV2(
+            new Date(activity.lastActive).toLocaleString()
+          )}`
+        );
       }
     }
 
     // Restrictions & Compliance
     lines.push("");
     lines.push("*Restrictions & Compliance:*");
-    lines.push(`• Warnings: ${meta.warnings || 0}/3`);
+    lines.push(`• Warnings: ${userMeta.warnings || 0}/3`);
 
-    if (meta.mutedUntil && meta.mutedUntil > new Date()) {
-      lines.push(`• Muted Until: ${escapeMarkdownV2(meta.mutedUntil.toLocaleString())}`);
+    if (userMeta.mutedUntil && userMeta.mutedUntil > new Date()) {
+      lines.push(
+        `• Muted Until: ${escapeMarkdownV2(
+          userMeta.mutedUntil.toLocaleString()
+        )}`
+      );
     } else {
       lines.push("• Muted: No");
     }
 
-    if (meta.bannedUntil) {
-      if (meta.bannedUntil > new Date()) {
-        lines.push(`• Banned Until: ${escapeMarkdownV2(meta.bannedUntil.toLocaleString())}`);
+    if (userMeta.bannedUntil) {
+      if (userMeta.bannedUntil > new Date()) {
+        lines.push(
+          `• Banned Until: ${escapeMarkdownV2(
+            userMeta.bannedUntil.toLocaleString()
+          )}`
+        );
       } else {
         lines.push("• Banned: Expired");
       }
@@ -133,7 +156,9 @@ export function register(bot) {
       lines.push("• Banned: No");
     }
 
-    lines.push(`• Media Restricted: ${meta.mediaRestricted ? "Yes" : "No"}`);
+    lines.push(
+      `• Media Restricted: ${userMeta.mediaRestricted ? "Yes" : "No"}`
+    );
 
     ctx.reply(lines.join("\n"), { parse_mode: "MarkdownV2" });
   };
@@ -171,19 +196,20 @@ export function register(bot) {
       });
     }
 
-    const meta = await getUserMeta(targetId);
-    if (!meta) return ctx.reply("❌ User not found\\.", {
-      parse_mode: "MarkdownV2",
-    });
+    const userMeta = await getUserMeta(targetId);
+    if (!userMeta)
+      return ctx.reply("❌ User not found\\.", {
+        parse_mode: "MarkdownV2",
+      });
 
     const aliasRaw = await getAlias(targetId);
     const aliasEscaped = escapeMarkdownV2(aliasRaw);
 
     ctx.reply(
       `👤 *User Info*\nAlias: *${aliasEscaped}*\nWarnings: ${
-        meta.warnings || 0
-      }\nMuted: ${!!meta.mutedUntil}\nBanned: ${!!meta.bannedUntil}\nMedia Restricted: ${!!meta.mediaRestricted}\nLast Active: ${new Date(
-        meta.lastActive || 0
+        userMeta.warnings || 0
+      }\nMuted: ${!!userMeta.mutedUntil}\nBanned: ${!!userMeta.bannedUntil}\nMedia Restricted: ${!!userMeta.mediaRestricted}\nLast Active: ${new Date(
+        userMeta.lastActive || 0
       ).toLocaleString()}`,
       { parse_mode: "MarkdownV2" }
     );

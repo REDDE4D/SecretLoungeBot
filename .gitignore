@@ -44,11 +44,18 @@ COMMAND_RESTRUCTURE.md
 # Temporary files
 temp/
 tmp/
+
 # Database files
 *.sqlite
 *.db
+
 # Generated documentation
-docs//api/  
+docs//api/
 PROGRESS.md
 Dashboard.md
 package-lock.json
+
+# Dashboard API
+dashboard-api/node_modules/
+dashboard-api/.env
+dashboard-api/logs/

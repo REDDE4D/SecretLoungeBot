@@ -1,35 +1,26 @@
-const User = require('../../models/User');
-const Activity = require('../../models/Activity');
-const RelayedMessage = require('../../models/RelayedMessage');
-const Report = require('../../models/Report');
-const Poll = require('../../models/Poll');
-const Block = require('../../models/Block');
-const AuditLog = require('../../models/AuditLog');
-const SpamDetection = require('../../models/SpamDetection');
-const PinnedMessage = require('../../models/PinnedMessage');
-const Preferences = require('../../models/Preferences');
-const Reaction = require('../../models/Reaction');
-const ScheduledAnnouncement = require('../../models/ScheduledAnnouncement');
-const Setting = require('../../models/Setting');
-const logger = require('../../utils/logger');
-const { escapeMarkdownV2 } = require('../../utils/sanitize');
-const { resolveTargetUser } = require('../../users');
+import { User } from '../../models/User.js';
+import { Activity } from '../../models/Activity.js';
+import RelayedMessage from '../../models/RelayedMessage.js';
+import Report from '../../models/Report.js';
+import Poll from '../../models/Poll.js';
+import Block from '../../models/Block.js';
+import AuditLog from '../../models/AuditLog.js';
+import SpamDetection from '../../models/SpamDetection.js';
+import PinnedMessage from '../../models/PinnedMessage.js';
+import { Preferences } from '../../models/Preferences.js';
+import ScheduledAnnouncement from '../../models/ScheduledAnnouncement.js';
+import Setting from '../../models/Setting.js';
+import logger from '../../utils/logger.js';
+import { escapeMarkdownV2 } from '../../utils/sanitize.js';
+import { findUserIdByAlias, getUserMeta } from '../../users/index.js';
 
-const meta = {
-  name: 'export',
+export const meta = {
+  commands: ['export', 'backup'],
+  category: 'admin',
+  roleRequired: 'admin',
   description: 'Export bot data for backup or GDPR compliance',
   usage: '/export <type> [options]',
-  examples: [
-    '/export users - Export all user data',
-    '/export messages - Export all message history',
-    '/export messages 30 - Export last 30 days of messages',
-    '/export full - Export everything (users + messages)',
-    '/export user alice - Export specific user\'s data (GDPR)',
-    '/export help - Show detailed help'
-  ],
-  aliases: ['backup'],
-  category: 'admin',
-  adminOnly: true
+  showInMenu: false,
 };
 
 /**
@@ -552,8 +543,12 @@ Export bot data for backup or GDPR compliance\\. All exports are in JSON format\
           return ctx.reply('❌ Usage: `/export user <alias>`\n\nExample: `/export user alice`');
         }
 
-        const targetUser = await resolveTargetUser(alias, null);
+        const userId = await findUserIdByAlias(alias);
+        if (!userId) {
+          return ctx.reply(`❌ User "${escapeMarkdownV2(alias)}" not found\\.`, { parse_mode: 'MarkdownV2' });
+        }
 
+        const targetUser = await getUserMeta(userId);
         if (!targetUser) {
           return ctx.reply(`❌ User "${escapeMarkdownV2(alias)}" not found\\.`, { parse_mode: 'MarkdownV2' });
         }
@@ -589,4 +584,4 @@ Export bot data for backup or GDPR compliance\\. All exports are in JSON format\
   });
 }
 
-module.exports = { register, meta };
+export { register };
