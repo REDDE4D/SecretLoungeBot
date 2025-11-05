@@ -243,15 +243,15 @@ export default function SettingsPage() {
                       Minimum seconds between messages (1-3600)
                     </p>
                   </div>
-                  <Button
-                    onClick={() => updateSetting('slowmode', settings.slowmode)}
-                    disabled={saving}
-                  >
-                    {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                    Save Slowmode Settings
-                  </Button>
                 </>
               )}
+              <Button
+                onClick={() => updateSetting('slowmode', settings.slowmode)}
+                disabled={saving}
+              >
+                {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Save Slowmode Settings
+              </Button>
             </CardContent>
           </Card>
         </TabsContent>

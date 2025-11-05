@@ -146,7 +146,25 @@ export default function ContentPage() {
 
   const createInvite = async () => {
     try {
-      const response = await apiClient.post('/content/invites', newInvite);
+      // Prepare invite data with proper types and field names
+      const inviteData: any = {};
+
+      // Convert maxUses to number if provided
+      if (newInvite.maxUses && newInvite.maxUses.trim() !== '') {
+        inviteData.maxUses = parseInt(newInvite.maxUses);
+      }
+
+      // Rename expiry to expiresAt
+      if (newInvite.expiry && newInvite.expiry.trim() !== '') {
+        inviteData.expiresAt = newInvite.expiry.trim();
+      }
+
+      // Include notes if provided
+      if (newInvite.notes && newInvite.notes.trim() !== '') {
+        inviteData.notes = newInvite.notes.trim();
+      }
+
+      const response = await apiClient.post('/content/invites', inviteData);
       if (response.success) {
         toast({ title: 'Success', description: 'Invite created successfully' });
         setInviteDialog(false);
