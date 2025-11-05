@@ -74,6 +74,7 @@ export default function LinksManagement() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [currentTab, setCurrentTab] = useState('whitelist');
 
   // Add dialog state
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -341,7 +342,7 @@ export default function LinksManagement() {
       )}
 
       {/* Tabs */}
-      <Tabs defaultValue="whitelist" className="space-y-4">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="whitelist">Whitelist</TabsTrigger>
           <TabsTrigger value="permissions">User Permissions</TabsTrigger>

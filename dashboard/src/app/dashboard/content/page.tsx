@@ -65,6 +65,7 @@ export default function ContentPage() {
   const [filterDialog, setFilterDialog] = useState(false);
   const [inviteDialog, setInviteDialog] = useState(false);
   const [pinDialog, setPinDialog] = useState(false);
+  const [currentTab, setCurrentTab] = useState('filters');
   const [newFilter, setNewFilter] = useState({
     pattern: '',
     isRegex: false,
@@ -242,7 +243,7 @@ export default function ContentPage() {
         </p>
       </div>
 
-      <Tabs defaultValue="filters" className="space-y-4">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="filters">Content Filters</TabsTrigger>
           <TabsTrigger value="invites">Invite Codes</TabsTrigger>

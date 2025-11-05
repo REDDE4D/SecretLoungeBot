@@ -78,6 +78,7 @@ export default function PermissionsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [currentTab, setCurrentTab] = useState('roles');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -192,7 +193,7 @@ export default function PermissionsPage() {
         </Button>
       </div>
 
-      <Tabs defaultValue="roles" className="space-y-4">
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="roles">Roles Overview</TabsTrigger>
           <TabsTrigger value="matrix">Permission Matrix</TabsTrigger>
