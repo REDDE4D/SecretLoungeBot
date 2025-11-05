@@ -4,6 +4,7 @@ import { escapeMarkdownV2, escapeHTML, renderIconHTML } from "../../utils/saniti
 import { resolveOriginalFromReply } from "../../relay/quoteMap.js";
 import RelayedMessage from "../../models/RelayedMessage.js";
 import bot from "../../core/bot.js";
+import { handleTelegramError } from "../../utils/telegramErrorHandler.js";
 
 export const meta = {
   commands: ["delete", "del"],
@@ -68,8 +69,12 @@ export function register(botInstance) {
         );
       }
 
-      // Delete all copies
+      // Delete all copies with detailed error tracking
       let deletedCount = 0;
+      let blockedCount = 0;
+      let notFoundCount = 0;
+      let otherErrorCount = 0;
+
       for (const copy of relayedCopies) {
         try {
           const chatId = copy.userId || copy.chatId;
@@ -78,7 +83,20 @@ export function register(botInstance) {
             deletedCount++;
           }
         } catch (err) {
-          // Silently fail for individual deletions (user may have deleted it, blocked bot, etc.)
+          // Track error types
+          const handleResult = await handleTelegramError(err, copy.userId, "message_delete", {
+            targetUserId,
+            targetAlias,
+            messageId: copy.messageId,
+          });
+
+          if (handleResult.reason === "user_blocked") {
+            blockedCount++;
+          } else if (handleResult.reason === "not_found") {
+            notFoundCount++;
+          } else {
+            otherErrorCount++;
+          }
         }
       }
 
@@ -106,7 +124,7 @@ export function register(botInstance) {
         try {
           await ctx.telegram.sendMessage(targetUserId, notificationText);
         } catch (err) {
-          // Silently fail
+          await handleTelegramError(err, targetUserId, "delete_notification", { targetAlias });
         }
       } else {
         // Notify the target user (no cooldown)
@@ -117,18 +135,30 @@ export function register(botInstance) {
         try {
           await ctx.telegram.sendMessage(targetUserId, notificationText);
         } catch (err) {
-          // Silently fail
+          await handleTelegramError(err, targetUserId, "delete_notification", { targetAlias });
         }
       }
 
-      // Send confirmation to admin
+      // Send confirmation to admin with error statistics
       const cooldownInfo = durationMs
         ? ` and applied ${Math.round(durationMs / 60000)}m cooldown`
         : "";
-      ctx.reply(
-        `🗑️ Deleted message from *${targetAliasEscaped}*${cooldownInfo}\\.\nDeleted ${deletedCount} copies\\.`,
-        { parse_mode: "MarkdownV2" }
-      );
+
+      const totalAttempted = relayedCopies.length;
+      let detailsText = `🗑️ Deleted message from *${targetAliasEscaped}*${cooldownInfo}\\.\n\n`;
+      detailsText += `✅ Successfully deleted: ${deletedCount}/${totalAttempted}\n`;
+
+      if (blockedCount > 0) {
+        detailsText += `🚫 Users who blocked bot: ${blockedCount}\n`;
+      }
+      if (notFoundCount > 0) {
+        detailsText += `❌ Already deleted: ${notFoundCount}\n`;
+      }
+      if (otherErrorCount > 0) {
+        detailsText += `⚠️ Other errors: ${otherErrorCount}\n`;
+      }
+
+      ctx.reply(detailsText, { parse_mode: "MarkdownV2" });
 
       // Announce to lobby
       const lobbyUsers = await getLobbyUsers();

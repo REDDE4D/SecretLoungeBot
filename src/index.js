@@ -14,6 +14,7 @@ import { checkExpiredPolls } from "./utils/pollExpiration.js";
 import cron from "node-cron";
 import ScheduledAnnouncement from "./models/ScheduledAnnouncement.js";
 import { sendScheduledAnnouncement } from "./commands/admin/schedule.js";
+import { logError, shutdownLogger } from "./services/dashboardLogger.js";
 
 // Validate required environment variables
 if (!process.env.ADMIN_ID) {
@@ -136,6 +137,7 @@ bot.catch(async (err, ctx) => {
   }
 
   try {
+    // Send notification to admin via Telegram
     await ctx.telegram.sendMessage(ERROR_NOTIFICATION_ID, errorMsg.join("\n"), {
       parse_mode: "MarkdownV2",
     });
@@ -149,6 +151,20 @@ bot.catch(async (err, ctx) => {
   } catch (notifyErr) {
     logger.error("Failed to notify admin", { error: notifyErr.message });
   }
+
+  // Log to dashboard for real-time visibility
+  logError(
+    errorText,
+    {
+      critical: true,
+      updateType,
+      stack: stackPreview,
+      occurrences: cached ? cached.count : 1,
+      errorSignature,
+    },
+    userId !== "unknown" ? String(userId) : null,
+    "bot_error_handler"
+  );
 });
 
 function scheduleDailyMidnight(fn) {
@@ -255,12 +271,14 @@ bot.launch({
 });
 
 // Graceful shutdown handlers
-process.once("SIGINT", () => {
+process.once("SIGINT", async () => {
   logger.info("SIGINT received. Shutting down gracefully...");
+  await shutdownLogger();
   bot.stop("SIGINT");
 });
 
-process.once("SIGTERM", () => {
+process.once("SIGTERM", async () => {
   logger.info("SIGTERM received. Shutting down gracefully...");
+  await shutdownLogger();
   bot.stop("SIGTERM");
 });

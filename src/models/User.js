@@ -24,6 +24,8 @@ const userSchema = new mongoose.Schema({
   warnings: { type: Number, default: 0 },
   mediaRestricted: { type: Boolean, default: false },
   canPostLinks: { type: Boolean, default: false },
+  blockedBot: { type: Boolean, default: false, index: true },
+  blockedAt: { type: Date, default: null },
 });
 
 // Compound index for lobby member queries with role filtering

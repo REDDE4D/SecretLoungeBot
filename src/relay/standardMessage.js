@@ -17,6 +17,7 @@ import {
   sendWithRetry
 } from "./utils.js";
 import { TIMING } from "../config/constants.js";
+import { handleTelegramError } from "../utils/telegramErrorHandler.js";
 
 /**
  * Relay a single, non-album message (text or single media).
@@ -248,10 +249,13 @@ export async function relayStandardMessage(
 
       await sleep(TIMING.RELAY_DELAY_MS);
     } catch (err) {
-      console.error(
-        `❌ Could not relay to ${uid}:`,
-        err?.response?.description || err?.message || err
-      );
+      // Use centralized error handler
+      await handleTelegramError(err, uid, "message_relay", {
+        senderId,
+        senderAlias,
+        messageType: type,
+        originalMsgId: m.message_id,
+      });
     }
   }
 }

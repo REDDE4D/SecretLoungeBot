@@ -7,6 +7,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2025-11-05
+
+### Added
+
+- **Blocked User Detection & Management System**
+  - Automatic detection when users block the bot (403 Forbidden errors)
+  - `blockedBot` and `blockedAt` fields added to User model
+  - Automatic lobby removal when user blocks the bot
+  - `/blocked` admin command to view all users who have blocked the bot
+  - `/blocked cleanup` command to remove blocked users from database
+  - Blocked users tracked with date and lobby status
+  - Real-time notifications to dashboard when users block bot
+
+- **Dashboard Live Logging System**
+  - New WebSocket event types: `bot:log`, `bot:error`, `relay:failure`, `user:blocked`, `system:health`
+  - Dashboard API logging endpoint `/api/logs/event` for bot-to-dashboard communication
+  - `BotLog` model with TTL (30-day auto-expiration)
+  - Dashboard logger bridge service with batched HTTP requests
+  - Real-time error streaming to dashboard with severity levels
+  - System health metrics logging (memory, uptime, throughput)
+  - Event categorization: error, warning, info, relay_failure, rate_limit, user_blocked, system_health, user_action
+  - Automatic log cleanup with configurable retention period
+
+- **Message Length Handling**
+  - Message splitter utility for handling Telegram's 4096 character limit
+  - `splitLongMessage()` function with smart word boundary detection
+  - `sendLongMessage()` wrapper for automatic message splitting
+  - Part indicators (e.g., "[Part 1/3]") for split messages
+  - Configurable safety margin (4000 chars) to account for formatting
+
+- **Centralized Error Handling**
+  - `telegramErrorHandler.js` utility for consistent error handling
+  - Automatic detection of blocked user errors, rate limits, message too long, not found errors
+  - `handleTelegramError()` function for unified error processing
+  - `safeTelegramCall()` wrapper for protected API calls
+  - Error categorization with appropriate dashboard logging
+
+### Changed
+
+- **Enhanced Delete Command Feedback**
+  - Detailed deletion statistics: successful, blocked, not found, other errors
+  - Per-user error tracking during message deletion
+  - Admin receives comprehensive report of deletion outcomes
+  - Improved notification error handling
+
+- **Improved Relay Error Handling**
+  - `standardMessage.js` now uses centralized error handler
+  - `editRelay.js` now tracks and reports blocked users
+  - All relay failures logged to dashboard with context
+  - Better error context (senderId, alias, messageType, etc.)
+
+- **Main Error Handler Integration**
+  - Bot errors now logged to both Telegram (admin) and dashboard
+  - Graceful shutdown with log flushing on SIGINT/SIGTERM
+  - Error aggregation tracked and reported to dashboard
+  - Critical errors marked with priority flag
+
+### Fixed
+
+- **Unhandled Promise Rejections**
+  - Fixed "message is too long" unhandled rejections
+  - Improved error catching in relay loops
+  - Better async error handling in delete/announce/pins commands
+
+- **Silent Blocking Failures**
+  - Bot now detects and handles 403 Forbidden errors properly
+  - Blocked users automatically removed from lobby
+  - No more silent failures in message relay
+
 ## [2.0.0] - 2025-11-03
 
 ### Added

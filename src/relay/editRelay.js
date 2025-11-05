@@ -2,6 +2,7 @@
 import RelayedMessage from "../models/RelayedMessage.js";
 import { getAlias, getIcon } from "../users/index.js";
 import { escapeHTML, renderIconHTML } from "../utils/sanitize.js";
+import { handleTelegramError } from "../utils/telegramErrorHandler.js";
 
 /**
  * Handle message edits by updating all relayed copies
@@ -83,13 +84,15 @@ export async function handleEditRelay(ctx) {
           { caption: newCaption }
         );
       } catch (err) {
-        console.error(`Failed to edit relayed message ${copy.messageId} for user ${copy.userId}:`, err.message);
         failCount++;
 
-        // Common errors:
-        // - "Bad Request: message is not modified" - ignore
-        // - "Bad Request: message to edit not found" - message was deleted
-        // - "Forbidden: bot was blocked by the user" - user blocked bot
+        // Use centralized error handler
+        await handleTelegramError(err, copy.userId, "edit_relay", {
+          editorId,
+          editorAlias: alias,
+          messageId: copy.messageId,
+          originalMsgId,
+        });
       }
     }
   } catch (err) {

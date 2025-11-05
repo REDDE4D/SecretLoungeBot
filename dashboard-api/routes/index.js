@@ -9,6 +9,7 @@ import permissionsRoutes from "./permissions.js";
 import exportRoutes from "./export.js";
 import batchRoutes from "./batch.js";
 import linksRoutes from "./links.js";
+import logsRoutes from "./logs.js";
 
 const router = express.Router();
 
@@ -45,6 +46,7 @@ router.get("/", (req, res) => {
       export: "GET /api/export/*",
       batch: "POST /api/batch/*",
       links: "GET /api/links/*",
+      logs: "POST /api/logs/*",
     },
   });
 });
@@ -62,5 +64,6 @@ router.use("/permissions", permissionsRoutes);
 router.use("/export", exportRoutes);
 router.use("/batch", batchRoutes);
 router.use("/links", linksRoutes);
+router.use("/logs", logsRoutes);
 
 export default router;
