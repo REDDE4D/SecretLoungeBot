@@ -184,7 +184,8 @@ export const updateRules = asyncHandler(async (req, res) => {
  * Update spam detection configuration
  */
 export const updateSpamConfig = asyncHandler(async (req, res) => {
-  const { spam } = req.body;
+  // Accept spam config either as nested { spam: {...} } or directly as body
+  const spam = req.body.spam || req.body;
 
   if (!spam || typeof spam !== "object") {
     return res.status(400).json({

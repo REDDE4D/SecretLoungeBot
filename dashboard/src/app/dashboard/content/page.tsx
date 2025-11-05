@@ -190,10 +190,11 @@ export default function ContentPage() {
 
   const toggleInvite = async (code: string, currentState: string) => {
     try {
-      const newState = currentState === 'active' ? 'revoked' : 'active';
-      const response = await apiClient.put(`/content/invites/${code}`, { state: newState });
+      const newActiveState = currentState !== 'active';
+      const response = await apiClient.put(`/content/invites/${code}`, { active: newActiveState });
       if (response.success) {
-        toast({ title: 'Success', description: `Invite ${newState}` });
+        const stateText = newActiveState ? 'activated' : 'revoked';
+        toast({ title: 'Success', description: `Invite ${stateText}` });
         fetchAllContent();
       }
     } catch (error) {
