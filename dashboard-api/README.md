@@ -2,15 +2,21 @@
 
 REST API server for the SecretLounge-Bot admin dashboard.
 
-## Phase 1: Backend API Foundation ✅
+## Full-Featured Dashboard API ✅
 
-This is the **Phase 1** implementation, providing:
-- Express.js server with security middleware
+Complete implementation providing:
+- Express.js server with comprehensive security middleware
 - Telegram OAuth authentication
-- JWT-based session management
-- Role-based access control (RBAC)
-- Rate limiting
-- Request validation
+- JWT-based session management with auto-refresh
+- Role-based access control (RBAC) with custom roles
+- WebSocket support for real-time updates
+- Rate limiting and DDoS protection
+- Request validation with Zod schemas
+- Complete REST API for all bot features
+- Internal API for bot-to-dashboard communication
+- Notification system with preferences
+- System health monitoring
+- Database-backed permission system
 
 ## Quick Start
 
@@ -86,6 +92,8 @@ GET /api/health
   "uptime": 123.456
 }
 ```
+
+---
 
 ### Authentication
 
@@ -205,6 +213,325 @@ Authorization: Bearer <access-token>
 }
 ```
 
+---
+
+### Users
+
+#### GET /api/users
+
+Get all users with optional filtering.
+
+**Query Parameters:**
+- `search` - Search by alias
+- `role` - Filter by role
+- `status` - Filter by status (active, banned, muted)
+- `inLobby` - Filter by lobby status
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": "123456789",
+        "alias": "JohnDoe",
+        "icon": "🎭",
+        "role": "admin",
+        "customRoles": ["moderator"],
+        "inLobby": true,
+        "status": "online",
+        "joinDate": "2025-01-01T00:00:00.000Z"
+      }
+    ],
+    "total": 100
+  }
+}
+```
+
+#### GET /api/users/:id
+
+Get detailed user information.
+
+#### PUT /api/users/:id/role
+
+Update user's system role.
+
+#### POST /api/users/:id/ban
+
+Ban a user.
+
+#### POST /api/users/:id/mute
+
+Mute a user.
+
+#### POST /api/users/:id/kick
+
+Kick user from lobby.
+
+#### POST /api/users/:id/assign-roles
+
+Assign custom roles to user.
+
+---
+
+### Permissions
+
+#### GET /api/permissions/custom-roles
+
+Get all custom roles.
+
+#### POST /api/permissions/custom-roles
+
+Create a new custom role.
+
+#### PUT /api/permissions/custom-roles/:id
+
+Update custom role.
+
+#### DELETE /api/permissions/custom-roles/:id
+
+Delete custom role.
+
+#### GET /api/permissions/system-roles
+
+Get all system roles.
+
+#### PUT /api/permissions/system-roles/:roleId
+
+Update system role properties (emoji, color, etc.).
+
+---
+
+### Settings
+
+#### GET /api/settings
+
+Get all bot settings.
+
+#### PUT /api/settings/:key
+
+Update a specific setting.
+
+---
+
+### Moderation
+
+#### GET /api/moderation/reports
+
+Get all user reports with pagination.
+
+#### GET /api/moderation/reports/:id
+
+Get specific report details.
+
+#### POST /api/moderation/reports/:id/resolve
+
+Resolve a report.
+
+---
+
+### Audit Logs
+
+#### GET /api/audit
+
+Get audit logs with filtering.
+
+**Query Parameters:**
+- `action` - Filter by action type
+- `moderatorId` - Filter by moderator
+- `targetUserId` - Filter by target user
+- `page` - Page number
+- `limit` - Items per page
+
+---
+
+### Statistics
+
+#### GET /api/stats
+
+Get comprehensive bot statistics.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "users": {
+      "total": 1000,
+      "inLobby": 500,
+      "online": 50,
+      "banned": 10
+    },
+    "messages": {
+      "total": 50000,
+      "today": 1000,
+      "thisWeek": 7000
+    }
+  }
+}
+```
+
+#### GET /api/stats/user/:userId
+
+Get statistics for a specific user.
+
+---
+
+### Logs
+
+#### GET /api/logs
+
+Get bot logs with filtering.
+
+**Query Parameters:**
+- `level` - Filter by log level
+- `category` - Filter by category
+- `startDate` - Start date
+- `endDate` - End date
+
+#### POST /api/logs/event
+
+Log an event from the bot (internal use).
+
+---
+
+### Notifications
+
+#### GET /api/notifications
+
+Get notifications for authenticated user.
+
+**Query Parameters:**
+- `page` - Page number
+- `limit` - Items per page
+- `unreadOnly` - Show only unread
+- `type` - Filter by type
+
+#### PATCH /api/notifications/:id/read
+
+Mark notification as read.
+
+#### DELETE /api/notifications/:id
+
+Delete a notification.
+
+#### PATCH /api/notifications/read-all
+
+Mark all notifications as read.
+
+#### GET /api/notifications/preferences
+
+Get notification preferences.
+
+#### PUT /api/notifications/preferences
+
+Update notification preferences.
+
+---
+
+### System
+
+#### GET /api/system/health
+
+Get system health status.
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "memory": {
+      "used": 150000000,
+      "total": 500000000
+    },
+    "uptime": 86400
+  }
+}
+```
+
+#### GET /api/system/stats
+
+Get system statistics.
+
+---
+
+### Internal (Bot-to-Dashboard)
+
+These endpoints are used by the bot to trigger WebSocket events:
+
+#### POST /api/internal/emit/report
+
+Emit new report event.
+
+#### POST /api/internal/emit/moderation
+
+Emit moderation action event.
+
+#### POST /api/internal/emit/spam
+
+Emit spam alert event.
+
+#### POST /api/internal/emit/user-joined
+
+Emit user joined event.
+
+#### POST /api/internal/emit/user-left
+
+Emit user left event.
+
+#### POST /api/internal/emit/settings-change
+
+Emit settings change event.
+
+#### POST /api/internal/emit/audit-log
+
+Emit audit log event.
+
+---
+
+## WebSocket Events
+
+The API emits various WebSocket events for real-time updates:
+
+### Event Types
+
+- `stats:update` - Statistics updated
+- `user:joined` - User joined lobby
+- `user:left` - User left lobby
+- `report:new` - New report created
+- `moderation:action` - Moderation action taken
+- `spam:alert` - Spam detected
+- `audit:log` - New audit log entry
+- `settings:change` - Settings updated
+- `notification:new` - New notification created
+- `bot:log` - Bot log event
+- `bot:error` - Bot error event
+- `relay:failure` - Message relay failed
+- `user:blocked` - User blocked the bot
+- `system:health` - System health update
+
+### Connection
+
+Connect to WebSocket server at `ws://localhost:3001` with authentication:
+
+```javascript
+import io from 'socket.io-client';
+
+const socket = io('http://localhost:3001', {
+  auth: {
+    token: 'your-jwt-access-token'
+  }
+});
+
+socket.on('stats:update', (data) => {
+  console.log('Stats updated:', data);
+});
+```
+
+---
+
 ## Security Features
 
 ### Rate Limiting
@@ -258,36 +585,70 @@ See `config/permissions.js` for full permission matrix.
 
 ## Database Models
 
-### Session
+### API-Specific Models
 
-Stores API session information:
+#### Session
+Stores API session information for JWT authentication.
+
+#### Notification
+In-app notifications for dashboard users.
 
 ```javascript
 {
   userId: String,
-  accessTokenHash: String,
-  refreshTokenHash: String,
-  ipAddress: String,
-  userAgent: String,
-  expiresAt: Date,
-  lastActivity: Date,
+  type: String, // report, moderation, user_action, system, security, announcement
+  title: String,
+  message: String,
+  priority: String, // low, medium, high, critical
+  read: Boolean,
+  readAt: Date,
+  metadata: Object,
+  expiresAt: Date, // 30-day TTL
 }
 ```
 
-**Indexes:**
-- `userId` - Find user sessions
-- `accessTokenHash` - Token verification
-- `refreshTokenHash` - Token refresh
-- `expiresAt` - TTL index for auto-cleanup
+#### NotificationPreferences
+User preferences for notifications.
+
+```javascript
+{
+  userId: String,
+  enabledTypes: [String],
+  soundEnabled: Boolean,
+  desktopEnabled: Boolean,
+}
+```
+
+#### BotLog
+Bot logs streamed to dashboard.
+
+```javascript
+{
+  level: String, // info, warn, error
+  category: String,
+  message: String,
+  metadata: Object,
+  timestamp: Date,
+  expiresAt: Date, // 30-day TTL
+}
+```
 
 ### Shared Models
 
 The API shares these models with the main bot:
-- `User` - User information
+- `User` - User information and authentication
 - `Activity` - User activity tracking
-- `AuditLog` - Moderation logs
+- `AuditLog` - Moderation action logs
 - `RelayedMessage` - Message relay data
 - `Report` - User reports
+- `Setting` - Global bot settings
+- `CustomRole` - Custom role definitions
+- `SystemRole` - System role configuration
+- `Poll` - Poll data
+- `ContentFilter` - Content filters
+- `Block` - User blocking
+- `SpamDetection` - Spam detection data
+- And 10+ more models (see main bot docs)
 
 ## Testing
 
@@ -329,29 +690,62 @@ curl http://localhost:3001/api/auth/me \
 
 ```
 dashboard-api/
-├── server.js                 # Express server entry
+├── app.js                           # Express app configuration
+├── server.js                        # Server entry point with WebSocket
 ├── config/
-│   ├── database.js          # MongoDB connection
-│   └── permissions.js       # Permission definitions
+│   ├── database.js                  # MongoDB connection
+│   ├── permissions.js               # Permission definitions (RBAC)
+│   └── socket.js                    # Socket.io configuration
 ├── middleware/
-│   ├── auth.js              # JWT verification
-│   ├── rbac.js              # Role-based access control
-│   ├── rateLimit.js         # Rate limiting
-│   ├── validation.js        # Request validation
-│   └── errorHandler.js      # Error handling
+│   ├── auth.js                      # JWT verification
+│   ├── rbac.js                      # Role-based access control
+│   ├── rateLimit.js                 # Rate limiting
+│   ├── validation.js                # Request validation
+│   └── errorHandler.js              # Error handling
 ├── routes/
-│   ├── index.js             # Route aggregator
-│   └── auth.js              # Auth routes
+│   ├── index.js                     # Route aggregator
+│   ├── auth.js                      # Authentication routes
+│   ├── users.js                     # User management routes
+│   ├── permissions.js               # Permission & role management
+│   ├── settings.js                  # Bot settings routes
+│   ├── moderation.js                # Moderation routes
+│   ├── audit.js                     # Audit log routes
+│   ├── stats.js                     # Statistics routes
+│   ├── logs.js                      # Log management routes
+│   ├── notifications.js             # Notification routes
+│   ├── system.js                    # System health routes
+│   └── internal.js                  # Internal bot-to-dashboard routes
 ├── controllers/
-│   └── authController.js    # Auth handlers
+│   ├── authController.js            # Authentication handlers
+│   ├── usersController.js           # User management handlers
+│   ├── permissionsController.js     # Permission handlers
+│   ├── settingsController.js        # Settings handlers
+│   ├── moderationController.js      # Moderation handlers
+│   ├── auditController.js           # Audit log handlers
+│   ├── statsController.js           # Statistics handlers
+│   ├── logsController.js            # Log handlers
+│   ├── notificationsController.js   # Notification handlers
+│   ├── systemController.js          # System health handlers
+│   ├── batchController.js           # Batch operation handlers
+│   ├── contentController.js         # Content management handlers
+│   └── exportController.js          # Data export handlers
 ├── services/
-│   └── authService.js       # Business logic
+│   ├── authService.js               # Auth business logic
+│   ├── userService.js               # User management logic
+│   ├── moderationService.js         # Moderation logic
+│   ├── statsService.js              # Statistics logic
+│   ├── socketService.js             # WebSocket event emissions
+│   ├── notificationService.js       # Notification management
+│   └── systemService.js             # System monitoring logic
 ├── models/
-│   └── Session.js           # Session model
+│   ├── Session.js                   # API sessions
+│   ├── Notification.js              # In-app notifications
+│   ├── NotificationPreferences.js   # Notification preferences
+│   └── BotLog.js                    # Bot logs
 └── utils/
-    ├── telegram.js          # Telegram auth
-    ├── jwt.js               # JWT utilities
-    └── validators.js        # Zod schemas
+    ├── telegram.js                  # Telegram auth
+    ├── jwt.js                       # JWT utilities
+    └── validators.js                # Zod schemas
 ```
 
 ### Adding New Routes
@@ -400,13 +794,92 @@ router.get(
 - Use refresh token to get new access token
 - Re-authenticate if refresh token also expired
 
-## Next Steps
+## Features Summary
 
-Phase 1 is complete! Next phases:
+### ✅ Completed Features
 
-- **Phase 2:** Core API Endpoints (stats, users, settings, moderation)
-- **Phase 3:** WebSocket Implementation
-- **Phase 4:** Next.js Frontend
+- **Authentication & Authorization**
+  - Telegram OAuth integration
+  - JWT-based sessions with auto-refresh
+  - Role-based access control (RBAC)
+  - Permission system with custom roles
+  - Multi-session management
+
+- **User Management**
+  - User listing with search and filters
+  - User details and statistics
+  - Ban, mute, kick operations
+  - Role assignment (system and custom roles)
+  - Bulk moderation actions
+
+- **Permissions & Roles**
+  - Custom role creation and management
+  - System role customization
+  - Permission matrix
+  - Role-based API access control
+
+- **Settings Management**
+  - Global bot settings
+  - Invite system configuration
+  - Compliance rules
+  - Content filters
+  - Slowmode settings
+
+- **Moderation**
+  - Report management
+  - Audit log with filtering
+  - Moderation action tracking
+  - Spam detection configuration
+
+- **Statistics & Analytics**
+  - Real-time bot statistics
+  - User-specific statistics
+  - Message metrics
+  - Activity tracking
+
+- **Real-time Updates**
+  - WebSocket integration
+  - Live statistics updates
+  - Event notifications
+  - Bot log streaming
+  - System health monitoring
+
+- **Notifications**
+  - In-app notification system
+  - Notification preferences
+  - Multiple notification types
+  - Real-time delivery via WebSocket
+
+- **System Monitoring**
+  - Health check endpoints
+  - Memory usage tracking
+  - Uptime monitoring
+  - System statistics
+
+- **Security**
+  - Rate limiting (global and per-endpoint)
+  - Input validation with Zod
+  - Security headers (Helmet.js)
+  - CORS protection
+  - Token hashing
+  - Session management
+
+### 📚 Documentation
+
+See the main bot documentation for detailed information:
+- **[docs/COMMANDS.md](../docs/COMMANDS.md)** - Bot commands reference
+- **[docs/MODELS.md](../docs/MODELS.md)** - Database schemas
+- **[docs/SYSTEMS.md](../docs/SYSTEMS.md)** - System documentation
+- **[docs/DASHBOARD.md](../docs/DASHBOARD.md)** - Dashboard architecture
+
+## Deployment
+
+For production deployment instructions, see **[docs/DASHBOARD.md](../docs/DASHBOARD.md)** which includes:
+- PM2 configuration
+- Nginx setup
+- SSL/TLS configuration
+- Environment variables
+- Server setup guide
 
 ## License
 

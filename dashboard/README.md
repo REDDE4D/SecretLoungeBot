@@ -4,11 +4,43 @@ Modern Next.js 15 dashboard for managing the SecretLounge-Bot Telegram bot.
 
 ## Features
 
+### Core Features
 - **Telegram OAuth Authentication** - Secure login using Telegram Login Widget
 - **Real-time Updates** - WebSocket integration for live statistics and notifications
 - **Role-based Access Control** - Granular permissions system for different user roles
 - **Responsive Design** - Mobile-friendly UI built with Tailwind CSS
 - **Type-safe** - Full TypeScript support with strict mode enabled
+
+### Dashboard Pages
+- **Overview Dashboard** - Real-time statistics, active users, message counts
+- **User Management** - View, search, filter, ban, mute, kick users with bulk actions
+- **Permissions & Roles** - Manage custom roles and system roles with visual badges
+- **Audit Logs** - Complete moderation history with filtering and search
+- **Settings** - Bot configuration including invite system, compliance rules, and more
+- **Notifications** - In-app notification center with preferences and real-time alerts
+
+### Management Features
+- **User Actions** - Ban, mute, kick, warn users with duration and reason
+- **Bulk Operations** - Perform actions on multiple users simultaneously
+- **Role Assignment** - Assign custom roles and system roles to users
+- **Permission Management** - Create and edit custom roles with granular permissions
+- **System Role Customization** - Edit role emojis, colors, and permissions
+- **Content Moderation** - Review reports, manage content filters, configure slowmode
+
+### Real-time Features
+- **Live Statistics** - User counts, message metrics, activity tracking
+- **WebSocket Events** - Instant notifications for reports, bans, user actions
+- **System Health Monitoring** - Bot status, memory usage, uptime tracking
+- **Notification System** - Real-time alerts with sound and desktop notification support
+- **Auto-refresh** - Automatic data updates without page reload
+
+### UI/UX Features
+- **Dark Mode** - Full dark mode support throughout the interface
+- **Emoji Picker** - Visual emoji selector for role customization
+- **Data Tables** - Sortable, filterable tables with pagination
+- **Tab Persistence** - Maintain active tab state across page reloads
+- **Loading States** - Skeleton loaders and loading indicators
+- **Toast Notifications** - Success/error feedback for all actions
 
 ## Tech Stack
 
@@ -68,6 +100,12 @@ dashboard/
 ├── src/
 │   ├── app/                    # Next.js App Router pages
 │   │   ├── dashboard/          # Protected dashboard pages
+│   │   │   ├── page.tsx                # Overview dashboard
+│   │   │   ├── users/page.tsx          # User management
+│   │   │   ├── permissions/page.tsx    # Roles & permissions
+│   │   │   ├── audit/page.tsx          # Audit logs
+│   │   │   ├── settings/page.tsx       # Bot settings
+│   │   │   └── notifications/page.tsx  # Notification center
 │   │   ├── login/              # Login page
 │   │   ├── layout.tsx          # Root layout
 │   │   ├── page.tsx            # Home redirect page
@@ -76,24 +114,33 @@ dashboard/
 │   ├── components/
 │   │   ├── ui/                 # shadcn/ui components
 │   │   │   ├── button.tsx
-│   │   │   └── card.tsx
-│   │   └── dashboard/          # Dashboard-specific components
-│   │       ├── Sidebar.tsx
-│   │       └── Header.tsx
+│   │   │   ├── card.tsx
+│   │   │   ├── dialog.tsx
+│   │   │   ├── tabs.tsx
+│   │   │   └── ... (30+ components)
+│   │   ├── dashboard/          # Dashboard-specific components
+│   │   │   ├── Sidebar.tsx
+│   │   │   ├── Header.tsx
+│   │   │   └── NotificationCenter.tsx
+│   │   ├── common/             # Reusable components
+│   │   │   └── EmojiPicker.tsx
+│   │   ├── users/              # User management components
+│   │   │   └── AssignRolesDialog.tsx
+│   │   └── permissions/        # Permission components
+│   │       └── SystemRoleEditDialog.tsx
 │   │
 │   ├── contexts/               # React contexts
 │   │   ├── AuthContext.tsx     # Authentication state
-│   │   └── SocketContext.tsx   # WebSocket connection
+│   │   ├── SocketContext.tsx   # WebSocket connection
+│   │   └── NotificationContext.tsx  # Notification management
 │   │
 │   ├── lib/                    # Utilities and clients
 │   │   ├── api.ts              # Axios API client
 │   │   ├── socket.ts           # Socket.io client
 │   │   └── utils.ts            # Helper functions
 │   │
-│   ├── types/                  # TypeScript type definitions
-│   │   └── api.ts              # API response types
-│   │
-│   └── hooks/                  # Custom React hooks (future)
+│   └── types/                  # TypeScript type definitions
+│       └── api.ts              # API response types
 │
 ├── public/                     # Static assets
 ├── next.config.ts              # Next.js configuration
@@ -104,16 +151,20 @@ dashboard/
 
 ## Available Pages
 
+### Implemented
 - `/` - Home (redirects to dashboard or login)
-- `/login` - Telegram authentication
-- `/dashboard` - Overview with real-time statistics
-- `/dashboard/users` - User management (future)
-- `/dashboard/moderation` - Moderation center (future)
-- `/dashboard/content` - Content management (future)
-- `/dashboard/analytics` - Analytics dashboard (future)
-- `/dashboard/audit` - Audit log (future)
-- `/dashboard/settings` - Bot settings (future)
-- `/dashboard/permissions` - Permission management (future)
+- `/login` - Telegram OAuth authentication
+- `/dashboard` - Overview dashboard with real-time statistics and charts
+- `/dashboard/users` - User management with search, filter, and moderation actions
+- `/dashboard/permissions` - Custom roles and system role management with permission matrix
+- `/dashboard/audit` - Audit log with filtering, search, and export capabilities
+- `/dashboard/settings` - Bot configuration (invite system, compliance, filters, etc.)
+- `/dashboard/notifications` - Notification center with preferences and real-time alerts
+
+### Future Enhancements
+- `/dashboard/analytics` - Advanced analytics with charts and trends
+- `/dashboard/reports` - User report management dashboard
+- `/dashboard/exports` - Data export and backup management
 
 ## Authentication Flow
 
@@ -131,11 +182,25 @@ dashboard/
 
 The dashboard uses WebSocket (Socket.io) for real-time updates:
 
-- **Statistics Updates**: Dashboard stats refresh every 5 seconds
-- **User Events**: Real-time notifications when users join/leave
-- **Reports**: Instant notifications for new reports
-- **Moderation Actions**: Live updates when moderators take action
-- **Spam Alerts**: Immediate alerts for spam detection
+### Event Types
+- **Statistics Updates** (`stats:update`) - Dashboard stats refresh automatically
+- **User Events** (`user:joined`, `user:left`) - Real-time notifications when users join/leave lobby
+- **Reports** (`report:new`) - Instant notifications for new user reports
+- **Moderation Actions** (`moderation:action`) - Live updates when moderators ban/mute/kick users
+- **Spam Alerts** (`spam:alert`) - Immediate alerts for spam detection
+- **Audit Logs** (`audit:log`) - Real-time audit log entries
+- **Settings Changes** (`settings:change`) - Instant notification when bot settings are updated
+- **Notifications** (`notification:new`) - In-app notification delivery
+- **Bot Logs** (`bot:log`, `bot:error`) - Live bot logging and error streaming
+- **System Health** (`system:health`) - Bot health metrics and status updates
+- **Relay Failures** (`relay:failure`) - Message delivery failure notifications
+- **User Blocked** (`user:blocked`) - Notification when users block the bot
+
+### Connection Management
+- Automatic reconnection on connection loss
+- Keepalive pings to maintain connection
+- Graceful degradation when WebSocket unavailable
+- Connection status indicator in UI
 
 ## API Integration
 
