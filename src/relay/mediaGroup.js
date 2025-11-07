@@ -1,5 +1,5 @@
 // src/relay/mediaGroup.js
-import { getLobbyUsers } from "../users/index.js";
+import { getLobbyUsers, getRole } from "../users/index.js";
 import RelayedMessage from "../models/RelayedMessage.js";
 import Block from "../models/Block.js";
 import { Preferences } from "../models/Preferences.js";
@@ -16,6 +16,7 @@ import {
   sendWithRetry
 } from "./utils.js";
 import { TIMING } from "../config/constants.js";
+import { getSystemRoleEmoji } from "../../dashboard-api/config/permissions.js";
 
 /** Buffers **/
 const mediaGroupBuffer = new Map(); // group_id → group buffer
@@ -207,8 +208,20 @@ async function relayGroup(id, ctx, recipientsOverride) {
         }
       }
 
-      // Build header with icon and alias
-      const header = `${renderIconHTML(g.senderIcon)} <b>${escapeHTML(g.senderAlias)}</b>`;
+      // Get sender's role and role emoji badge
+      const senderRole = await getRole(g.senderId);
+      let roleBadge = "";
+
+      // Only show badges for privileged roles (admin, mod, whitelist)
+      if (senderRole && ["admin", "mod", "whitelist"].includes(senderRole)) {
+        const roleEmoji = await getSystemRoleEmoji(senderRole);
+        if (roleEmoji) {
+          roleBadge = ` ${roleEmoji}`;
+        }
+      }
+
+      // Build header with icon, alias, and role badge
+      const header = `${renderIconHTML(g.senderIcon)} <b>${escapeHTML(g.senderAlias)}</b>${roleBadge}`;
 
       // Build InputMedia array with header on first item
       const mediaGroup = g.items.map((item, i) => {

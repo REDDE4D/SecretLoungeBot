@@ -58,52 +58,37 @@ export async function getRoles(req, res) {
     const User = getUser();
 
     // Get user counts per system role
-    const [adminCount, modCount, whitelistCount, nullCount] = await Promise.all([
-      User.countDocuments({ role: "admin" }),
-      User.countDocuments({ role: "mod" }),
-      User.countDocuments({ role: "whitelist" }),
-      User.countDocuments({ $or: [{ role: null }, { role: { $exists: false } }] }),
-    ]);
+    const [ownerCount, adminCount, modCount, whitelistCount, nullCount, systemRolesFromDB] =
+      await Promise.all([
+        User.countDocuments({ role: "owner" }),
+        User.countDocuments({ role: "admin" }),
+        User.countDocuments({ role: "mod" }),
+        User.countDocuments({ role: "whitelist" }),
+        User.countDocuments({ $or: [{ role: null }, { role: { $exists: false } }] }),
+        roleService.getAllSystemRoles(),
+      ]);
 
-    // Build system role data with permissions
-    const systemRoles = [
-      {
-        id: "admin",
-        name: "Administrator",
-        description: "Full access to all features and settings",
-        userCount: adminCount,
-        permissions: ROLE_PERMISSIONS.admin,
-        isSystemRole: true,
-        color: "red",
-      },
-      {
-        id: "mod",
-        name: "Moderator",
-        description: "Can manage users and moderate content",
-        userCount: modCount,
-        permissions: ROLE_PERMISSIONS.mod,
-        isSystemRole: true,
-        color: "blue",
-      },
-      {
-        id: "whitelist",
-        name: "Whitelisted",
-        description: "Exempt from compliance and spam checks",
-        userCount: whitelistCount,
-        permissions: ROLE_PERMISSIONS.whitelist,
-        isSystemRole: true,
-        color: "green",
-      },
-      {
-        id: "user",
-        name: "Regular User",
-        description: "Standard lobby member with no special privileges",
-        userCount: nullCount,
-        permissions: [],
-        isSystemRole: true,
-        color: "gray",
-      },
-    ];
+    // Create map of role counts
+    const roleCounts = {
+      owner: ownerCount,
+      admin: adminCount,
+      mod: modCount,
+      whitelist: whitelistCount,
+      user: nullCount,
+    };
+
+    // Build system role data from database
+    const systemRoles = systemRolesFromDB.map((role) => ({
+      id: role.roleId,
+      name: role.name,
+      description: role.description,
+      userCount: roleCounts[role.roleId] || 0,
+      permissions: role.permissions,
+      isSystemRole: true,
+      isEditable: role.isEditable,
+      color: role.color,
+      emoji: role.emoji,
+    }));
 
     // Get custom roles from database
     const customRoles = await roleService.getCustomRoles();
@@ -176,7 +161,7 @@ export async function getUsersByRole(req, res) {
     if (role === "user") {
       // Regular users have null or no role
       query = { $or: [{ role: null }, { role: { $exists: false } }] };
-    } else if (["admin", "mod", "whitelist"].includes(role)) {
+    } else if (["owner", "admin", "mod", "whitelist"].includes(role)) {
       // System roles
       query = { role };
     } else {
@@ -309,52 +294,91 @@ export async function createRole(req, res) {
 }
 
 /**
- * Update a custom role
+ * Update a role (system or custom)
  *
  * @route   PUT /api/permissions/roles/:id
  * @param   {string} id - Role ID
- * @body    {name, description, color, icon}
+ * @body    {name, description, color, emoji/icon, permissions}
  * @returns {object} Updated role
  */
 export async function updateRole(req, res) {
   try {
     const { id } = req.params;
-    const { name, description, color, icon } = req.body;
+    const { name, description, color, icon, emoji, permissions } = req.body;
 
-    // Build updates object
-    const updates = {};
-    if (name !== undefined) updates.name = name.trim();
-    if (description !== undefined) updates.description = description.trim();
-    if (color !== undefined) updates.color = color;
-    if (icon !== undefined) updates.icon = icon;
+    // Check if it's a system role
+    const systemRoles = ["owner", "admin", "mod", "whitelist", "user"];
+    const isSystemRole = systemRoles.includes(id);
 
-    if (Object.keys(updates).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "No updates provided",
+    if (isSystemRole) {
+      // Update system role
+      const updates = {};
+      if (description !== undefined) updates.description = description.trim();
+      if (color !== undefined) updates.color = color;
+      if (emoji !== undefined) updates.emoji = emoji;
+      if (permissions !== undefined) updates.permissions = permissions;
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No updates provided",
+        });
+      }
+
+      const role = await roleService.updateSystemRole(id, updates);
+
+      res.json({
+        success: true,
+        message: "System role updated successfully",
+        data: {
+          role: {
+            id: role.roleId,
+            name: role.name,
+            description: role.description,
+            permissions: role.permissions,
+            color: role.color,
+            emoji: role.emoji,
+            isSystemRole: true,
+            isEditable: role.isEditable,
+            updatedAt: role.updatedAt,
+          },
+        },
+      });
+    } else {
+      // Update custom role
+      const updates = {};
+      if (name !== undefined) updates.name = name.trim();
+      if (description !== undefined) updates.description = description.trim();
+      if (color !== undefined) updates.color = color;
+      if (icon !== undefined) updates.icon = icon;
+
+      if (Object.keys(updates).length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "No updates provided",
+        });
+      }
+
+      const role = await roleService.updateRole(id, updates);
+
+      res.json({
+        success: true,
+        message: "Role updated successfully",
+        data: {
+          role: {
+            id: role.roleId,
+            name: role.name,
+            description: role.description,
+            permissions: role.permissions,
+            color: role.color,
+            icon: role.icon,
+            isSystemRole: false,
+            createdBy: role.createdBy,
+            updatedAt: role.updatedAt,
+          },
+        },
       });
     }
-
-    // Update role via roleService
-    const role = await roleService.updateRole(id, updates);
-
-    res.json({
-      success: true,
-      message: "Role updated successfully",
-      data: {
-        role: {
-          id: role.roleId,
-          name: role.name,
-          description: role.description,
-          permissions: role.permissions,
-          color: role.color,
-          icon: role.icon,
-          isSystemRole: false,
-          createdBy: role.createdBy,
-          updatedAt: role.updatedAt,
-        },
-      },
-    });
   } catch (error) {
     console.error("Error updating role:", error);
     res.status(400).json({
@@ -413,20 +437,43 @@ export async function updateRolePermissions(req, res) {
       });
     }
 
-    // Update permissions via roleService
-    const role = await roleService.setRolePermissions(id, permissions);
+    // Check if it's a system role
+    const systemRoles = ["owner", "admin", "mod", "whitelist", "user"];
+    const isSystemRole = systemRoles.includes(id);
 
-    res.json({
-      success: true,
-      message: "Role permissions updated successfully",
-      data: {
-        role: {
-          id: role.roleId,
-          name: role.name,
-          permissions: role.permissions,
+    if (isSystemRole) {
+      // Update system role permissions
+      const role = await roleService.updateSystemRole(id, { permissions });
+
+      res.json({
+        success: true,
+        message: "System role permissions updated successfully",
+        data: {
+          role: {
+            id: role.roleId,
+            name: role.name,
+            permissions: role.permissions,
+            isSystemRole: true,
+          },
         },
-      },
-    });
+      });
+    } else {
+      // Update custom role permissions
+      const role = await roleService.setRolePermissions(id, permissions);
+
+      res.json({
+        success: true,
+        message: "Role permissions updated successfully",
+        data: {
+          role: {
+            id: role.roleId,
+            name: role.name,
+            permissions: role.permissions,
+            isSystemRole: false,
+          },
+        },
+      });
+    }
   } catch (error) {
     console.error("Error updating role permissions:", error);
     res.status(400).json({

@@ -11,9 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, Power, AlertTriangle } from 'lucide-react';
 import { WelcomeMessageEditor } from '@/components/WelcomeMessageEditor';
 import { TelegramPreview } from '@/components/TelegramPreview';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Settings {
   inviteOnly: boolean;
@@ -41,8 +42,10 @@ export default function SettingsPage() {
   const [settings, setSettings] = useState<Settings | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [restarting, setRestarting] = useState(false);
   const [currentTab, setCurrentTab] = useState('general');
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
     fetchSettings();
@@ -90,6 +93,29 @@ export default function SettingsPage() {
     }
   };
 
+  const handleRestart = async () => {
+    try {
+      setRestarting(true);
+      const response = await apiClient.post('/system/restart');
+      if (response.success) {
+        toast({
+          title: 'Bot Restarting',
+          description: 'The bot will reload in a few seconds. The dashboard may briefly disconnect.',
+        });
+      }
+    } catch (error) {
+      console.error('Failed to restart bot:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to restart the bot',
+        variant: 'destructive',
+      });
+    } finally {
+      // Keep restarting state for a bit longer to prevent multiple clicks
+      setTimeout(() => setRestarting(false), 5000);
+    }
+  };
+
   if (loading || !settings) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -117,6 +143,7 @@ export default function SettingsPage() {
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="spam">Anti-Spam</TabsTrigger>
           <TabsTrigger value="rules">Rules</TabsTrigger>
+          {user?.role === 'owner' && <TabsTrigger value="system">System</TabsTrigger>}
         </TabsList>
 
         {/* General Settings */}
@@ -503,6 +530,50 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* System Settings - Owner Only */}
+        {user?.role === 'owner' && (
+          <TabsContent value="system" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Bot Control</CardTitle>
+                <CardDescription>System operations for bot management</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  <div className="flex items-start gap-4 p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-500 mt-0.5" />
+                    <div className="space-y-1 flex-1">
+                      <h4 className="font-medium text-yellow-900 dark:text-yellow-100">Restart Bot</h4>
+                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                        Gracefully reload the bot process using PM2. This will apply any code changes and restart the bot service.
+                        The dashboard may briefly disconnect during the restart.
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    onClick={handleRestart}
+                    disabled={restarting}
+                    variant="destructive"
+                    className="w-full"
+                  >
+                    {restarting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Restarting Bot...
+                      </>
+                    ) : (
+                      <>
+                        <Power className="mr-2 h-4 w-4" />
+                        Restart Bot
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

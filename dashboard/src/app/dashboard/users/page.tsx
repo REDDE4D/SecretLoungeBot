@@ -40,13 +40,15 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Search, MoreVertical, Ban, Volume2, UserX, AlertTriangle, Image } from 'lucide-react';
+import { Search, MoreVertical, Ban, Volume2, UserX, AlertTriangle, Image, Shield } from 'lucide-react';
+import { AssignRolesDialog } from '@/components/users/AssignRolesDialog';
 
 interface User {
   id: string;
   alias: string;
   icon: { fallback: string };
   role: string | null;
+  customRoles?: string[];
   inLobby: boolean;
   status: string;
   joinDate: string;
@@ -87,6 +89,7 @@ export default function UsersPage() {
     duration?: number;
     reason?: string;
   }>({ open: false, type: null });
+  const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -153,7 +156,11 @@ export default function UsersPage() {
           break;
       }
 
-      const response = await apiClient.post(endpoint, body);
+      // Use PUT for media restriction, POST for all other actions
+      const response = actionDialog.type === 'media'
+        ? await apiClient.put(endpoint, body)
+        : await apiClient.post(endpoint, body);
+
       if (response.success) {
         toast({
           title: 'Success',
@@ -178,15 +185,23 @@ export default function UsersPage() {
     setActionDialog({ open: true, type, duration: 0, reason: '' });
   };
 
+  const openRolesDialog = (user: User) => {
+    setSelectedUser(user);
+    setRolesDialogOpen(true);
+  };
+
   const getRoleBadge = (role: string | null) => {
     if (!role) return null;
-    const colors: Record<string, string> = {
-      admin: 'bg-red-500 text-white',
-      mod: 'bg-blue-500 text-white',
-      whitelist: 'bg-green-500 text-white',
+    const roleConfig: Record<string, { color: string; emoji: string }> = {
+      owner: { color: 'bg-purple-500 text-white', emoji: '🔱' },
+      admin: { color: 'bg-red-500 text-white', emoji: '👑' },
+      mod: { color: 'bg-blue-500 text-white', emoji: '🛡️' },
+      whitelist: { color: 'bg-green-500 text-white', emoji: '⭐' },
     };
+    const config = roleConfig[role] || { color: 'bg-gray-500 text-white', emoji: '' };
     return (
-      <Badge className={colors[role] || 'bg-gray-500 text-white'}>
+      <Badge className={config.color}>
+        {config.emoji && <span className="mr-1">{config.emoji}</span>}
         {role}
       </Badge>
     );
@@ -278,7 +293,7 @@ export default function UsersPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Alias</TableHead>
-                    <TableHead>Role</TableHead>
+                    <TableHead>Roles</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Lobby</TableHead>
                     <TableHead>Messages</TableHead>
@@ -295,7 +310,16 @@ export default function UsersPage() {
                           <span>{user.alias}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{getRoleBadge(user.role)}</TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {getRoleBadge(user.role)}
+                          {user.customRoles && user.customRoles.length > 0 && (
+                            <Badge variant="outline" className="text-xs">
+                              +{user.customRoles.length} custom
+                            </Badge>
+                          )}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {getStatusBadge(user.status)}
@@ -330,6 +354,11 @@ export default function UsersPage() {
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem onClick={() => openRolesDialog(user)}>
+                                <Shield className="mr-2 h-4 w-4" />
+                                Manage Roles
+                              </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => openActionDialog(user, 'ban')}>
                                 <Ban className="mr-2 h-4 w-4" />
@@ -387,6 +416,14 @@ export default function UsersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Roles Dialog */}
+      <AssignRolesDialog
+        open={rolesDialogOpen}
+        onOpenChange={setRolesDialogOpen}
+        user={selectedUser}
+        onRolesUpdated={fetchUsers}
+      />
 
       {/* Action Dialog */}
       <Dialog open={actionDialog.open} onOpenChange={(open) => setActionDialog({ ...actionDialog, open })}>

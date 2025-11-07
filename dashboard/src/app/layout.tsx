@@ -10,8 +10,8 @@ import { Toaster } from '@/components/ui/toaster';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'TG-Lobby-Bot Dashboard',
-  description: 'Admin dashboard for TG-Lobby-Bot',
+  title: 'SecretLounge-Bot Dashboard',
+  description: 'Admin dashboard for SecretLounge-Bot',
 };
 
 export default function RootLayout({

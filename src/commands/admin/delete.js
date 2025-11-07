@@ -1,9 +1,8 @@
-import { getAlias, muteUser, getLobbyUsers, getIcon } from "../../users/index.js";
+import { getAlias, muteUser } from "../../users/index.js";
 import { parseDuration } from "../utils/parsers.js";
-import { escapeMarkdownV2, escapeHTML, renderIconHTML } from "../../utils/sanitize.js";
+import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveOriginalFromReply } from "../../relay/quoteMap.js";
 import RelayedMessage from "../../models/RelayedMessage.js";
-import bot from "../../core/bot.js";
 import { handleTelegramError } from "../../utils/telegramErrorHandler.js";
 
 export const meta = {
@@ -18,18 +17,24 @@ export const meta = {
 export function register(botInstance) {
   botInstance.command(["delete", "del"], async (ctx) => {
     try {
+      console.log("[delete] Command called by user:", ctx.from.id);
+
       // Must reply to a message
       const replyId = ctx.message?.reply_to_message?.message_id;
       if (!replyId) {
+        console.log("[delete] No reply ID found");
         return ctx.reply(
           escapeMarkdownV2("❌ Reply to a message to delete it."),
           { parse_mode: "MarkdownV2" }
         );
       }
 
+      console.log("[delete] Resolving original message from reply:", replyId);
+
       // Resolve the original message
       const original = await resolveOriginalFromReply(ctx.from.id, replyId);
       if (!original) {
+        console.log("[delete] Could not resolve original message");
         return ctx.reply(
           escapeMarkdownV2("❌ Could not find original message."),
           { parse_mode: "MarkdownV2" }
@@ -38,6 +43,8 @@ export function register(botInstance) {
 
       const targetUserId = original.originalUserId;
       const originalMsgId = original.originalMsgId;
+
+      console.log("[delete] Found original message:", { targetUserId, originalMsgId });
 
       // Parse arguments: [duration] [reason...]
       const args = ctx.message.text.trim().split(" ").slice(1);
@@ -62,33 +69,48 @@ export function register(botInstance) {
         originalMsgId: Number(originalMsgId),
       });
 
+      console.log("[delete] Found", relayedCopies.length, "relayed copies");
+
       if (relayedCopies.length === 0) {
+        console.log("[delete] No relayed copies found");
         return ctx.reply(
           escapeMarkdownV2("❌ No relayed copies found for this message."),
           { parse_mode: "MarkdownV2" }
         );
       }
 
-      // Delete all copies with detailed error tracking
+      // Get target user info
+      const targetAlias = await getAlias(targetUserId);
+
+      console.log("[delete] Target user:", { targetUserId, targetAlias });
+
+      // Delete all relayed copies with detailed error tracking
       let deletedCount = 0;
       let blockedCount = 0;
       let notFoundCount = 0;
       let otherErrorCount = 0;
-
       for (const copy of relayedCopies) {
         try {
           const chatId = copy.userId || copy.chatId;
           if (chatId) {
+            console.log(`[delete] Attempting to delete message ${copy.messageId} from chat ${chatId}`);
             await ctx.telegram.deleteMessage(chatId, copy.messageId);
+            console.log(`[delete] Successfully deleted message ${copy.messageId} from chat ${chatId}`);
             deletedCount++;
+          } else {
+            console.log("[delete] No chatId for copy:", copy);
           }
         } catch (err) {
+          console.log(`[delete] Error deleting message ${copy.messageId} from chat ${copy.userId}:`, err.message);
+
           // Track error types
           const handleResult = await handleTelegramError(err, copy.userId, "message_delete", {
             targetUserId,
             targetAlias,
             messageId: copy.messageId,
           });
+
+          console.log(`[delete] Error handled as: ${handleResult.reason}`);
 
           if (handleResult.reason === "user_blocked") {
             blockedCount++;
@@ -100,42 +122,55 @@ export function register(botInstance) {
         }
       }
 
+      console.log("[delete] Deletion summary:", { deletedCount, blockedCount, notFoundCount, otherErrorCount });
+
       // Remove from database
       await RelayedMessage.deleteMany({
         originalUserId: String(targetUserId),
         originalMsgId: Number(originalMsgId),
       });
 
-      // Get target user info
-      const targetAlias = await getAlias(targetUserId);
-      const targetIcon = await getIcon(targetUserId);
       const targetAliasEscaped = escapeMarkdownV2(targetAlias);
 
       // Apply cooldown if duration specified
       if (durationMs) {
         await muteUser(targetUserId, durationMs);
 
-        // Notify the target user
+        // Reply to the sender's original message
         const cooldownMinutes = Math.round(durationMs / 60000);
         const notificationText = `🚫 Your message was deleted by an admin${
           reason ? ` for: ${reason}` : ""
         }\n\nYou have been given a ${cooldownMinutes} minute cooldown.`;
 
         try {
-          await ctx.telegram.sendMessage(targetUserId, notificationText);
+          await ctx.telegram.sendMessage(targetUserId, notificationText, {
+            reply_to_message_id: originalMsgId,
+          });
         } catch (err) {
-          await handleTelegramError(err, targetUserId, "delete_notification", { targetAlias });
+          // If reply fails, send without reply
+          try {
+            await ctx.telegram.sendMessage(targetUserId, notificationText);
+          } catch (err2) {
+            await handleTelegramError(err2, targetUserId, "delete_notification", { targetAlias });
+          }
         }
       } else {
-        // Notify the target user (no cooldown)
+        // Reply to the sender's original message (no cooldown)
         const notificationText = `🚫 Your message was deleted by an admin${
           reason ? ` for: ${reason}` : ""
         }`;
 
         try {
-          await ctx.telegram.sendMessage(targetUserId, notificationText);
+          await ctx.telegram.sendMessage(targetUserId, notificationText, {
+            reply_to_message_id: originalMsgId,
+          });
         } catch (err) {
-          await handleTelegramError(err, targetUserId, "delete_notification", { targetAlias });
+          // If reply fails, send without reply
+          try {
+            await ctx.telegram.sendMessage(targetUserId, notificationText);
+          } catch (err2) {
+            await handleTelegramError(err2, targetUserId, "delete_notification", { targetAlias });
+          }
         }
       }
 
@@ -146,7 +181,7 @@ export function register(botInstance) {
 
       const totalAttempted = relayedCopies.length;
       let detailsText = `🗑️ Deleted message from *${targetAliasEscaped}*${cooldownInfo}\\.\n\n`;
-      detailsText += `✅ Successfully deleted: ${deletedCount}/${totalAttempted}\n`;
+      detailsText += `✅ Successfully deleted: ${deletedCount}/${totalAttempted} messages\n`;
 
       if (blockedCount > 0) {
         detailsText += `🚫 Users who blocked bot: ${blockedCount}\n`;
@@ -159,29 +194,6 @@ export function register(botInstance) {
       }
 
       ctx.reply(detailsText, { parse_mode: "MarkdownV2" });
-
-      // Announce to lobby
-      const lobbyUsers = await getLobbyUsers();
-      const cooldownText = durationMs
-        ? ` and given a ${Math.round(durationMs / 60000)} minute cooldown`
-        : "";
-      const reasonText = reason ? `\nReason: ${escapeHTML(reason)}` : "";
-      const announcement = `${renderIconHTML(targetIcon)} <b>${escapeHTML(
-        targetAlias
-      )}</b>'s message was deleted by an admin${cooldownText}.${reasonText}`;
-
-      for (const userId of lobbyUsers) {
-        // Skip the admin who deleted and the target user (they got their own notification)
-        if (userId === String(ctx.from.id) || userId === String(targetUserId)) continue;
-
-        try {
-          await bot.telegram.sendMessage(userId, announcement, {
-            parse_mode: "HTML",
-          });
-        } catch (err) {
-          // Silently fail
-        }
-      }
     } catch (err) {
       console.error("[delete] Error:", err);
       ctx.reply(

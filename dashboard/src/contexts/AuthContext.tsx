@@ -6,7 +6,10 @@ import type { AuthData, AuthResponse } from '@/types/api';
 
 interface User {
   id: string;
+  alias?: string;
   username?: string;
+  firstName?: string;
+  lastName?: string;
   role: string;
   permissions: string[];
 }
@@ -34,12 +37,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verifySession = async () => {
     try {
+      // Check if tokens exist in localStorage before making request
+      if (typeof window !== 'undefined') {
+        const accessToken = localStorage.getItem('accessToken');
+        if (!accessToken) {
+          setLoading(false);
+          return;
+        }
+      }
+
       const response = await apiClient.get<User>('/auth/me');
       if (response.success && response.data) {
         setUser(response.data);
       }
-    } catch (error) {
-      console.error('Session verification failed:', error);
+    } catch (error: any) {
+      // Silently ignore 401 errors (not authenticated)
+      if (error.response?.status !== 401) {
+        console.error('Session verification failed:', error);
+      }
       apiClient.clearTokens();
     } finally {
       setLoading(false);

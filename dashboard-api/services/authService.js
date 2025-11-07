@@ -30,7 +30,7 @@ const getLoginAttempt = () => mongoose.model("LoginAttempt");
  */
 async function getUserPermissions(userId, userRole) {
   // Get system role permissions
-  const systemPerms = getPermissionsForRole(userRole);
+  const systemPerms = await getPermissionsForRole(userRole);
 
   // Get custom role permissions
   const customPerms = await roleService.getUserPermissions(userId);
@@ -46,8 +46,8 @@ async function getUserPermissions(userId, userRole) {
  * @returns {Promise<boolean>} True if user has dashboard access
  */
 async function hasDashboardAccess(userId, userRole) {
-  // Admin and mod roles have access by default
-  if (userRole === "admin" || userRole === "mod") {
+  // Owner, admin, and mod roles have access by default
+  if (userRole === "owner" || userRole === "admin" || userRole === "mod") {
     return true;
   }
 
@@ -76,20 +76,6 @@ export async function authenticateWithTelegram(authData, ipAddress, userAgent) {
   const Session = getSession();
   const LoginAttempt = getLoginAttempt();
 
-  // Check if IP is blocked due to too many failed attempts
-  const ipBlockCheck = await LoginAttempt.isBlocked(ipAddress, "ip");
-  if (ipBlockCheck.blocked) {
-    await logBruteForceBlock(
-      ipAddress,
-      "ip",
-      ipBlockCheck.attempts,
-      ipBlockCheck.minutesLeft
-    );
-    throw new Error(
-      `Too many failed login attempts. Please try again in ${ipBlockCheck.minutesLeft} minute(s).`
-    );
-  }
-
   try {
     // Verify Telegram auth data
     if (!verifyTelegramAuth(authData, botToken)) {
@@ -102,29 +88,58 @@ export async function authenticateWithTelegram(authData, ipAddress, userAgent) {
     const telegramUser = extractUserInfo(authData);
     const userId = telegramUser.id;
 
-    // Check if user is blocked
-    const userBlockCheck = await LoginAttempt.isBlocked(userId, "user");
-    if (userBlockCheck.blocked) {
-      await logBruteForceBlock(
-        userId,
-        "user",
-        userBlockCheck.attempts,
-        userBlockCheck.minutesLeft
-      );
-      throw new Error(
-        `Your account has been temporarily locked due to multiple failed login attempts. Please try again in ${userBlockCheck.minutesLeft} minute(s).`
-      );
+    // Check if this is the bot owner - owners bypass rate limiting
+    const isOwner = String(userId) === String(process.env.ADMIN_ID);
+
+    // Check rate limits only for non-owners
+    if (!isOwner) {
+      // Check if IP is blocked due to too many failed attempts
+      const ipBlockCheck = await LoginAttempt.isBlocked(ipAddress, "ip");
+      if (ipBlockCheck.blocked) {
+        await logBruteForceBlock(
+          ipAddress,
+          "ip",
+          ipBlockCheck.attempts,
+          ipBlockCheck.minutesLeft
+        );
+        throw new Error(
+          `Too many failed login attempts. Please try again in ${ipBlockCheck.minutesLeft} minute(s).`
+        );
+      }
+
+      // Check if user is blocked
+      const userBlockCheck = await LoginAttempt.isBlocked(userId, "user");
+      if (userBlockCheck.blocked) {
+        await logBruteForceBlock(
+          userId,
+          "user",
+          userBlockCheck.attempts,
+          userBlockCheck.minutesLeft
+        );
+        throw new Error(
+          `Your account has been temporarily locked due to multiple failed login attempts. Please try again in ${userBlockCheck.minutesLeft} minute(s).`
+        );
+      }
     }
 
     // Get user from database
-    const user = await User.findById(userId);
+    let user = await User.findById(userId);
 
     if (!user) {
-      await LoginAttempt.recordFailure(ipAddress, "ip");
-      await LoginAttempt.recordFailure(userId, "user");
+      // Only record failures for non-owners
+      if (!isOwner) {
+        await LoginAttempt.recordFailure(ipAddress, "ip");
+        await LoginAttempt.recordFailure(userId, "user");
+      }
       await logLoginFailure(userId, ipAddress, "User not registered", userAgent);
       throw new Error("User not registered. Please register via the bot first.");
     }
+
+    // Update Telegram user info on login
+    user.username = telegramUser.username;
+    user.firstName = telegramUser.firstName;
+    user.lastName = telegramUser.lastName;
+    await user.save();
 
     // Check if user has dashboard access permission
     const userRole = user.role || null;
@@ -132,8 +147,11 @@ export async function authenticateWithTelegram(authData, ipAddress, userAgent) {
     // Check if user has dashboard access (system role or custom permissions)
     const hasAccess = await hasDashboardAccess(userId, userRole);
     if (!hasAccess) {
-      await LoginAttempt.recordFailure(ipAddress, "ip");
-      await LoginAttempt.recordFailure(userId, "user");
+      // Only record failures for non-owners
+      if (!isOwner) {
+        await LoginAttempt.recordFailure(ipAddress, "ip");
+        await LoginAttempt.recordFailure(userId, "user");
+      }
       await logLoginFailure(userId, ipAddress, "No dashboard permission", userAgent);
       throw new Error("You do not have permission to access the dashboard");
     }
@@ -181,6 +199,9 @@ export async function authenticateWithTelegram(authData, ipAddress, userAgent) {
       user: {
         id: user._id,
         alias: user.alias,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
         role: userRole,
         permissions,
       },
@@ -286,6 +307,9 @@ export async function getCurrentUser(userId) {
   return {
     id: user._id,
     alias: user.alias,
+    username: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName,
     role: userRole,
     permissions,
     inLobby: user.inLobby,
@@ -354,28 +378,45 @@ export async function authenticateWithLoginToken(loginToken, ipAddress, userAgen
 
   const userId = loginToken.userId;
 
-  // Check if IP is blocked due to too many failed attempts
-  const ipBlockCheck = await LoginAttempt.isBlocked(ipAddress, "ip");
-  if (ipBlockCheck.blocked) {
-    await logBruteForceBlock(
-      ipAddress,
-      "ip",
-      ipBlockCheck.attempts,
-      ipBlockCheck.minutesLeft
-    );
-    throw new Error(
-      `Too many failed login attempts. Please try again in ${ipBlockCheck.minutesLeft} minute(s).`
-    );
+  // Check if this is the bot owner - owners bypass rate limiting
+  const isOwner = String(userId) === String(process.env.ADMIN_ID);
+
+  // Check rate limits only for non-owners
+  if (!isOwner) {
+    // Check if IP is blocked due to too many failed attempts
+    const ipBlockCheck = await LoginAttempt.isBlocked(ipAddress, "ip");
+    if (ipBlockCheck.blocked) {
+      await logBruteForceBlock(
+        ipAddress,
+        "ip",
+        ipBlockCheck.attempts,
+        ipBlockCheck.minutesLeft
+      );
+      throw new Error(
+        `Too many failed login attempts. Please try again in ${ipBlockCheck.minutesLeft} minute(s).`
+      );
+    }
   }
 
   // Get user from database
-  const user = await User.findById(userId);
+  let user = await User.findById(userId);
 
   if (!user) {
-    await LoginAttempt.recordFailure(ipAddress, "ip");
-    await LoginAttempt.recordFailure(userId, "user");
+    // Only record failures for non-owners
+    if (!isOwner) {
+      await LoginAttempt.recordFailure(ipAddress, "ip");
+      await LoginAttempt.recordFailure(userId, "user");
+    }
     await logLoginFailure(userId, ipAddress, "User not registered", userAgent);
     throw new Error("User not registered. Please register via the bot first.");
+  }
+
+  // Update Telegram user info from login token data
+  if (loginToken.userData) {
+    user.username = loginToken.userData.username || null;
+    user.firstName = loginToken.userData.firstName || loginToken.userData.first_name || null;
+    user.lastName = loginToken.userData.lastName || loginToken.userData.last_name || null;
+    await user.save();
   }
 
   // Check if user has dashboard access permission
@@ -384,8 +425,11 @@ export async function authenticateWithLoginToken(loginToken, ipAddress, userAgen
   // Check if user has dashboard access (system role or custom permissions)
   const hasAccess = await hasDashboardAccess(userId, userRole);
   if (!hasAccess) {
-    await LoginAttempt.recordFailure(ipAddress, "ip");
-    await LoginAttempt.recordFailure(userId, "user");
+    // Only record failures for non-owners
+    if (!isOwner) {
+      await LoginAttempt.recordFailure(ipAddress, "ip");
+      await LoginAttempt.recordFailure(userId, "user");
+    }
     await logLoginFailure(userId, ipAddress, "No dashboard permission", userAgent);
     throw new Error("You do not have permission to access the dashboard");
   }
@@ -433,6 +477,9 @@ export async function authenticateWithLoginToken(loginToken, ipAddress, userAgen
     user: {
       id: user._id,
       alias: user.alias,
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: userRole,
       permissions,
     },

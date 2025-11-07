@@ -149,7 +149,7 @@ if (NODE_ENV === "development") {
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "TG-Lobby-Bot Dashboard API",
+    message: "SecretLounge-Bot Dashboard API",
     version: "2.0.0",
     phase: "Phase 3 - WebSocket Implementation",
     features: ["REST API", "WebSocket Real-time Events", "JWT Authentication", "RBAC"],
@@ -208,7 +208,7 @@ async function startServer() {
       console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
-║   🚀 TG-Lobby-Bot Dashboard API                           ║
+║   🚀 SecretLounge-Bot Dashboard API                       ║
 ║                                                            ║
 ║   Status:  Running                                         ║
 ║   Port:    ${PORT}                                        ║

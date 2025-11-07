@@ -206,7 +206,7 @@ export default function LoginPage() {
           <div className="text-center space-y-4">
             <div className="mb-4 text-7xl animate-bounce [animation-duration:2s]">🤖</div>
             <h1 className="text-4xl font-bold tracking-tight text-gradient">
-              TG-Lobby-Bot
+              SecretLounge-Bot
             </h1>
             <p className="text-base text-muted-foreground">
               Admin dashboard for managing your Telegram lobby bot

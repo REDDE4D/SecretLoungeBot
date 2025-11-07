@@ -25,11 +25,16 @@ const getNotificationIcon = (type: string) => {
     case 'spam':
       return '⚠️';
     case 'user':
+    case 'user_joined':
+    case 'user_left':
+    case 'user_status':
       return '👤';
     case 'settings':
       return '⚙️';
     case 'audit':
       return '🔒';
+    case 'bot_log':
+      return '📝';
     default:
       return '📢';
   }
@@ -44,11 +49,16 @@ const getNotificationColor = (type: string) => {
     case 'spam':
       return 'text-yellow-500';
     case 'user':
+    case 'user_joined':
+    case 'user_left':
+    case 'user_status':
       return 'text-blue-500';
     case 'settings':
       return 'text-gray-500';
     case 'audit':
       return 'text-purple-500';
+    case 'bot_log':
+      return 'text-cyan-500';
     default:
       return 'text-gray-400';
   }
@@ -58,6 +68,7 @@ export function NotificationCenter() {
   const {
     notifications,
     unreadCount,
+    loading,
     markAsRead,
     markAllAsRead,
     clearNotification,
@@ -74,7 +85,7 @@ export function NotificationCenter() {
           {unreadCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs"
+              className="absolute -right-1 -top-1 h-5 w-5 rounded-full p-0 text-xs flex items-center justify-center leading-none"
             >
               {unreadCount > 99 ? '99+' : unreadCount}
             </Badge>
@@ -124,7 +135,12 @@ export function NotificationCenter() {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        {notifications.length === 0 ? (
+        {loading ? (
+          <div className="py-12 text-center text-sm text-muted-foreground">
+            <div className="mx-auto mb-2 h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <p>Loading notifications...</p>
+          </div>
+        ) : notifications.length === 0 ? (
           <div className="py-12 text-center text-sm text-muted-foreground">
             <Bell className="mx-auto mb-2 h-12 w-12 opacity-20" />
             <p>No notifications yet</p>

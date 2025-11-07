@@ -1,6 +1,6 @@
-# TG-Lobby-Bot Dashboard
+# SecretLounge-Bot Dashboard
 
-Modern Next.js 15 dashboard for managing the TG-Lobby-Bot Telegram bot.
+Modern Next.js 15 dashboard for managing the SecretLounge-Bot Telegram bot.
 
 ## Features
 
@@ -191,4 +191,4 @@ The dashboard communicates with the backend API using Axios:
 
 ## License
 
-Same as main TG-Lobby-Bot project
+Same as main SecretLounge-Bot project

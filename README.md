@@ -2,7 +2,7 @@
 
 > An anonymous Telegram chat lobby bot that enables users to communicate anonymously through customizable aliases and emoji avatars.
 
-[![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-2.3.0-blue.svg)](CHANGELOG.md)
 [![License](https://img.shields.io/badge/license-ISC-green.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node.js-%3E%3D16.0.0-brightgreen.svg)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/mongodb-required-47A248.svg)](https://www.mongodb.com/)

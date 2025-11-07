@@ -82,6 +82,9 @@ export async function getReportDetails(reportId) {
  * @returns {Promise<Object>} Updated report
  */
 export async function resolveReport(reportId, action, notes, moderatorId) {
+  const Report = getReport();
+  const User = getUser();
+
   const validActions = [
     "none",
     "warned",
@@ -116,12 +119,12 @@ export async function resolveReport(reportId, action, notes, moderatorId) {
   // Log to audit log
   await getAuditLogModel().create({
     moderatorId,
-    category: "moderation",
+    moderatorAlias: moderator?.alias || "System",
     action: "report_resolve",
     targetUserId: report.reportedUserId,
     targetAlias: report.reportedAlias,
-    details: `Report resolved with action: ${action}`,
-    metadata: {
+    reason: `Report resolved with action: ${action}`,
+    details: {
       reportId: report._id.toString(),
       resolutionAction: action,
       notes,
@@ -168,12 +171,12 @@ export async function getAuditLog(options = {}) {
   }
 
   if (startDate || endDate) {
-    query.timestamp = {};
+    query.createdAt = {};
     if (startDate) {
-      query.timestamp.$gte = new Date(startDate);
+      query.createdAt.$gte = new Date(startDate);
     }
     if (endDate) {
-      query.timestamp.$lte = new Date(endDate);
+      query.createdAt.$lte = new Date(endDate);
     }
   }
 
@@ -182,8 +185,9 @@ export async function getAuditLog(options = {}) {
   const actualLimit = Math.min(limit, 100);
 
   // Get audit logs
-  const logs = await getAuditLogModel().find(query)
-    .sort({ timestamp: -1 })
+  const logs = await getAuditLogModel()
+    .find(query)
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(actualLimit)
     .lean();
@@ -191,8 +195,21 @@ export async function getAuditLog(options = {}) {
   // Get total count
   const total = await getAuditLogModel().countDocuments(query);
 
+  // Transform logs to match frontend expectations
+  const transformedLogs = logs.map((log) => ({
+    _id: log._id,
+    action: log.action,
+    performedBy: log.moderatorId,
+    performedByAlias: log.moderatorAlias || "System",
+    targetUserId: log.targetUserId,
+    targetAlias: log.targetAlias,
+    reason: log.reason || "",
+    details: log.details || {},
+    timestamp: log.createdAt,
+  }));
+
   return {
-    logs,
+    logs: transformedLogs,
     pagination: {
       page: parseInt(page),
       limit: actualLimit,

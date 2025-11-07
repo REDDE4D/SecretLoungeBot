@@ -243,3 +243,58 @@ export const warnUser = asyncHandler(async (req, res) => {
     data: result,
   });
 });
+
+/**
+ * GET /api/users/:id/roles
+ * Get user's roles (system role + custom roles)
+ */
+export const getUserRoles = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const result = await userService.getUserRoles(id);
+
+  res.json({
+    success: true,
+    data: result,
+  });
+});
+
+/**
+ * POST /api/users/:id/roles
+ * Assign a custom role to a user
+ */
+export const assignCustomRole = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { roleId } = req.body;
+
+  if (!roleId || typeof roleId !== "string") {
+    return res.status(400).json({
+      success: false,
+      error: "roleId is required and must be a string",
+    });
+  }
+
+  const result = await userService.assignCustomRole(id, roleId, req.user.id);
+
+  res.json({
+    success: true,
+    message: "Custom role assigned successfully",
+    data: result,
+  });
+});
+
+/**
+ * DELETE /api/users/:id/roles/:roleId
+ * Remove a custom role from a user
+ */
+export const removeCustomRole = asyncHandler(async (req, res) => {
+  const { id, roleId } = req.params;
+
+  const result = await userService.removeCustomRole(id, roleId, req.user.id);
+
+  res.json({
+    success: true,
+    message: "Custom role removed successfully",
+    data: result,
+  });
+});

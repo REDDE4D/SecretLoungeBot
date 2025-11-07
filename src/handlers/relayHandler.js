@@ -269,17 +269,17 @@ export default function registerHandlers(bot) {
     // Fetch settings once for maintenance mode, slowmode, and filters
     const setting = await getCachedSettings();
 
-    // Check maintenance mode (admins can still send messages)
+    // Check maintenance mode (owner, admins, and mods can still send messages)
     if (setting?.maintenanceMode) {
-      const isAdmin = meta.role === "admin";
-      if (!isAdmin) {
+      const isStaff = ['owner', 'admin', 'mod'].includes(meta.role);
+      if (!isStaff) {
         await ctx.reply(setting.maintenanceMessage || "🔧 The lobby is currently undergoing maintenance. Please check back later.");
         return;
       }
     }
 
-    // Check slowmode (admins, mods, whitelist exempt)
-    const isExemptFromSlowmode = meta.role && ["admin", "mod", "whitelist"].includes(meta.role);
+    // Check slowmode (owner, admins, mods, whitelist exempt)
+    const isExemptFromSlowmode = meta.role && ["owner", "admin", "mod", "whitelist"].includes(meta.role);
 
     if (!isExemptFromSlowmode) {
 

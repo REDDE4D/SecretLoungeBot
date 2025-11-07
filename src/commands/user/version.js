@@ -60,14 +60,14 @@ export function register(bot) {
       const uptimeStr = formatUptime(uptime);
 
       const versionText = [
-        `🤖 *TG\\-Lobby\\-Bot*`,
+        `🤖 *SecretLounge\\-Bot*`,
         `━━━━━━━━━━━━━━━━━━━━`,
         ``,
         `📦 *Version:* \`${escapeMarkdownV2(version)}\``,
         `⏱️ *Uptime:* \`${escapeMarkdownV2(uptimeStr)}\``,
         ``,
         `📋 *Changelog:*`,
-        `[View on GitHub](https://github.com/yourusername/TG-Lobby-V2/blob/main/CHANGELOG.md)`,
+        `[View on GitHub](https://github.com/yourusername/SecretLounge-V2/blob/main/CHANGELOG.md)`,
         ``,
         `━━━━━━━━━━━━━━━━━━━━`,
       ].join("\n");

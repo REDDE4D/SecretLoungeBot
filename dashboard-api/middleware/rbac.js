@@ -73,18 +73,23 @@ export function requireRole(roles) {
 }
 
 /**
- * Require admin role
+ * Require owner role
  */
-export const requireAdmin = requireRole("admin");
+export const requireOwner = requireRole("owner");
 
 /**
- * Require moderator or admin role
+ * Require admin or owner role
  */
-export const requireModerator = requireRole(["mod", "admin"]);
+export const requireAdmin = requireRole(["admin", "owner"]);
 
 /**
- * Allow resource owner or admin
- * Checks if req.user.id matches req.params.id or user is admin
+ * Require moderator, admin, or owner role
+ */
+export const requireModerator = requireRole(["mod", "admin", "owner"]);
+
+/**
+ * Allow resource owner or admin/bot owner
+ * Checks if req.user.id matches req.params.id or user is admin/owner
  */
 export function requireOwnerOrAdmin(req, res, next) {
   if (!req.user) {
@@ -94,10 +99,11 @@ export function requireOwnerOrAdmin(req, res, next) {
     });
   }
 
-  const isOwner = req.user.id === req.params.id;
+  const isResourceOwner = req.user.id === req.params.id;
   const isAdmin = req.user.role === "admin";
+  const isBotOwner = req.user.role === "owner";
 
-  if (!isOwner && !isAdmin) {
+  if (!isResourceOwner && !isAdmin && !isBotOwner) {
     return res.status(403).json({
       success: false,
       message: "You can only access your own resources",

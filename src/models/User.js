@@ -3,6 +3,10 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
   _id: String, // Telegram user ID
   alias: { type: String, required: false, unique: true, sparse: true, index: true },
+  // Telegram user info (updated on login)
+  username: { type: String, default: null }, // Telegram @username
+  firstName: { type: String, default: null },
+  lastName: { type: String, default: null },
   icon: {
     customEmojiId: { type: String, default: null },
     fallback: { type: String, default: "👤" },
@@ -11,7 +15,7 @@ const userSchema = new mongoose.Schema({
   preferences: { type: Map, of: String, default: {} },
   role: {
     type: String,
-    enum: ["admin", "mod", "whitelist", null],
+    enum: ["owner", "admin", "mod", "whitelist", null],
     default: null,
   },
   customRoles: {

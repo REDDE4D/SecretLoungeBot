@@ -105,8 +105,8 @@ export async function canUserPostLinks(userId) {
   const user = await User.findById(userId);
   if (!user) return false;
 
-  // Admins and mods can always post links
-  if (user.role === 'admin' || user.role === 'mod') return true;
+  // Owner, admins, and mods can always post links
+  if (['owner', 'admin', 'mod'].includes(user.role)) return true;
 
   // Check explicit permission
   return user.canPostLinks === true;

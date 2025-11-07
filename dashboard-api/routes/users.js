@@ -125,4 +125,38 @@ router.post(
   usersController.warnUser
 );
 
+/**
+ * @route   GET /api/users/:id/roles
+ * @desc    Get user's roles (system role + custom roles)
+ * @access  Private (requires users.view_details permission)
+ */
+router.get(
+  "/:id/roles",
+  requirePermissions(["users.view_details"]),
+  usersController.getUserRoles
+);
+
+/**
+ * @route   POST /api/users/:id/roles
+ * @desc    Assign a custom role to a user
+ * @access  Private (requires users.manage_roles permission)
+ * @body    {string} roleId - Custom role ID to assign
+ */
+router.post(
+  "/:id/roles",
+  requirePermissions(["users.manage_roles"]),
+  usersController.assignCustomRole
+);
+
+/**
+ * @route   DELETE /api/users/:id/roles/:roleId
+ * @desc    Remove a custom role from a user
+ * @access  Private (requires users.manage_roles permission)
+ */
+router.delete(
+  "/:id/roles/:roleId",
+  requirePermissions(["users.manage_roles"]),
+  usersController.removeCustomRole
+);
+
 export default router;

@@ -1,5 +1,6 @@
 import { getIoInstance } from "../config/socket.js";
 import { getOverviewStats } from "./statsService.js";
+import * as notificationService from "./notificationService.js";
 
 /**
  * Socket Service - Handles all real-time event emissions
@@ -19,8 +20,8 @@ export async function emitStatsUpdate(stats = null) {
       stats = await getOverviewStats({ period: "day" });
     }
 
-    // Emit to stats subscribers
-    io.to("stats-subscribers").emit("stats:update", {
+    // Emit to stats room (users with stats permissions automatically join this room)
+    const statsPayload = {
       users: {
         online: stats.users?.online || 0,
         inLobby: stats.users?.inLobby || 0,
@@ -32,7 +33,10 @@ export async function emitStatsUpdate(stats = null) {
         pending: stats.moderation?.pendingReports || 0,
       },
       timestamp: new Date().toISOString(),
-    });
+    };
+
+    io.to("stats-room").emit("stats:update", statsPayload);
+    console.log(`📊 Stats update emitted to stats-room:`, statsPayload);
   } catch (error) {
     console.error("Error emitting stats update:", error);
   }
@@ -42,7 +46,7 @@ export async function emitStatsUpdate(stats = null) {
  * Emit new report notification to moderators
  * @param {Object} report - Report object
  */
-export function emitNewReport(report) {
+export async function emitNewReport(report) {
   try {
     const io = getIoInstance();
 
@@ -57,6 +61,20 @@ export function emitNewReport(report) {
       timestamp: report.createdAt,
     });
 
+    // Create persistent notification for moderators
+    await notificationService.createBroadcastNotification(
+      'mod',
+      'report',
+      'New Report',
+      `${report.reportedAlias} reported by user for: ${report.reason}`,
+      report.reporterId, // Don't notify the reporter
+      {
+        reportId: report._id.toString(),
+        reportedAlias: report.reportedAlias,
+        reason: report.reason
+      }
+    );
+
     console.log(`📢 New report notification sent to moderators: ${report._id}`);
   } catch (error) {
     console.error("Error emitting new report:", error);
@@ -67,7 +85,7 @@ export function emitNewReport(report) {
  * Emit moderation action to all relevant users
  * @param {Object} action - Moderation action details
  */
-export function emitModerationAction(action) {
+export async function emitModerationAction(action) {
   try {
     const io = getIoInstance();
 
@@ -87,6 +105,23 @@ export function emitModerationAction(action) {
 
     // Send to mod room
     io.to("mod-room").emit("action:moderation", payload);
+
+    // Create persistent notification for moderators
+    const durationText = action.duration ? ` for ${action.duration}` : '';
+    await notificationService.createBroadcastNotification(
+      'mod',
+      'moderation',
+      'Moderation Action',
+      `${action.moderatorAlias} ${action.action}ed ${action.targetAlias}${durationText}`,
+      action.moderatorId, // Don't notify the moderator who performed the action
+      {
+        action: action.action,
+        targetAlias: action.targetAlias,
+        targetId: action.targetId,
+        reason: action.reason,
+        duration: action.duration
+      }
+    );
 
     console.log(`🔨 Moderation action broadcast: ${action.action} on ${action.targetAlias}`);
   } catch (error) {
@@ -139,7 +174,7 @@ export function emitUserLeft(user) {
  * Emit spam alert to moderators
  * @param {Object} alert - Spam alert details
  */
-export function emitSpamAlert(alert) {
+export async function emitSpamAlert(alert) {
   try {
     const io = getIoInstance();
 
@@ -156,6 +191,22 @@ export function emitSpamAlert(alert) {
     // Send to moderators and admins
     io.to("mod-room").emit("spam:alert", payload);
 
+    // Create persistent notification for moderators
+    const muteText = alert.autoMuted ? ` (auto-muted for ${alert.muteDuration})` : '';
+    await notificationService.createBroadcastNotification(
+      'mod',
+      'spam',
+      'Spam Detected',
+      `${alert.alias} triggered ${alert.violationType} spam detection${muteText}`,
+      null, // No actor to filter
+      {
+        userId: alert.userId,
+        alias: alert.alias,
+        violationType: alert.violationType,
+        autoMuted: alert.autoMuted
+      }
+    );
+
     console.log(`⚠️ Spam alert broadcast: ${alert.alias} - ${alert.violationType}`);
   } catch (error) {
     console.error("Error emitting spam alert:", error);
@@ -166,7 +217,7 @@ export function emitSpamAlert(alert) {
  * Emit audit log entry in real-time
  * @param {Object} log - Audit log entry
  */
-export function emitAuditLog(log) {
+export async function emitAuditLog(log) {
   try {
     const io = getIoInstance();
 
@@ -182,6 +233,23 @@ export function emitAuditLog(log) {
       timestamp: log.timestamp,
     });
 
+    // Create persistent notification for admins (only for critical events)
+    if (log.severity === 'critical' || log.severity === 'high') {
+      await notificationService.createBroadcastNotification(
+        'admin',
+        'audit',
+        'Audit Log',
+        `${log.moderatorAlias} performed: ${log.action}`,
+        log.moderatorId, // Don't notify the actor
+        {
+          action: log.action,
+          category: log.category,
+          targetAlias: log.targetAlias,
+          details: log.details
+        }
+      );
+    }
+
     console.log(`📝 Audit log broadcast: ${log.action} by ${log.moderatorAlias}`);
   } catch (error) {
     console.error("Error emitting audit log:", error);
@@ -192,7 +260,7 @@ export function emitAuditLog(log) {
  * Emit settings change notification
  * @param {Object} change - Settings change details
  */
-export function emitSettingsChange(change) {
+export async function emitSettingsChange(change) {
   try {
     const io = getIoInstance();
 
@@ -204,6 +272,21 @@ export function emitSettingsChange(change) {
       changedBy: change.changedBy,
       timestamp: new Date().toISOString(),
     });
+
+    // Create persistent notification for admins
+    await notificationService.createBroadcastNotification(
+      'admin',
+      'settings',
+      'Settings Changed',
+      `${change.changedBy} modified ${change.category}.${change.setting}`,
+      change.changedById, // Don't notify the user who made the change
+      {
+        category: change.category,
+        setting: change.setting,
+        oldValue: change.oldValue,
+        newValue: change.newValue
+      }
+    );
 
     console.log(`⚙️ Settings change broadcast: ${change.category}.${change.setting}`);
   } catch (error) {

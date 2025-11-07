@@ -1,5 +1,5 @@
 // src/relay/standardMessage.js
-import { getLobbyUsers } from "../users/index.js";
+import { getLobbyUsers, getRole } from "../users/index.js";
 import RelayedMessage from "../models/RelayedMessage.js";
 import Block from "../models/Block.js";
 import { Preferences } from "../models/Preferences.js";
@@ -18,6 +18,7 @@ import {
 } from "./utils.js";
 import { TIMING } from "../config/constants.js";
 import { handleTelegramError } from "../utils/telegramErrorHandler.js";
+import { getSystemRoleEmoji } from "../../dashboard-api/config/permissions.js";
 
 /**
  * Relay a single, non-album message (text or single media).
@@ -109,8 +110,20 @@ export async function relayStandardMessage(
     expiresAt,
   });
 
-  // Build header with icon and alias
-  const header = `${renderIconHTML(senderIcon)} <b>${escapeHTML(senderAlias)}</b>`;
+  // Get sender's role and role emoji badge
+  const senderRole = await getRole(senderId);
+  let roleBadge = "";
+
+  // Only show badges for privileged roles (admin, mod, whitelist)
+  if (senderRole && ["admin", "mod", "whitelist"].includes(senderRole)) {
+    const roleEmoji = await getSystemRoleEmoji(senderRole);
+    if (roleEmoji) {
+      roleBadge = ` ${roleEmoji}`;
+    }
+  }
+
+  // Build header with icon, alias, and role badge
+  const header = `${renderIconHTML(senderIcon)} <b>${escapeHTML(senderAlias)}</b>${roleBadge}`;
 
   for (const uid of recipients) {
     try {

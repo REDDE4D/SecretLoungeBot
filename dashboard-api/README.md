@@ -1,6 +1,6 @@
-# TG-Lobby-Bot Dashboard API
+# SecretLounge-Bot Dashboard API
 
-REST API server for the TG-Lobby-Bot admin dashboard.
+REST API server for the SecretLounge-Bot admin dashboard.
 
 ## Phase 1: Backend API Foundation ✅
 
@@ -410,4 +410,4 @@ Phase 1 is complete! Next phases:
 
 ## License
 
-Same license as the main TG-Lobby-Bot project.
+Same license as the main SecretLounge-Bot project.

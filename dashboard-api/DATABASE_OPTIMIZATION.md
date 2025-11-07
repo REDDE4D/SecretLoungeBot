@@ -2,7 +2,7 @@
 
 ## Current Index Strategy
 
-This document outlines the database indexes currently in place and optimization strategies for the TG-Lobby-Bot Dashboard API.
+This document outlines the database indexes currently in place and optimization strategies for the SecretLounge-Bot Dashboard API.
 
 ## Existing Indexes
 

@@ -48,11 +48,14 @@ export async function connectDatabase() {
       { path: "../../src/models/PinnedMessage.js", name: "PinnedMessage" },
       { path: "../../src/models/ScheduledAnnouncement.js", name: "ScheduledAnnouncement" },
       { path: "../../src/models/CustomRole.js", name: "CustomRole" },
+      { path: "../../src/models/SystemRole.js", name: "SystemRole" },
       { path: "../../src/models/LinkWhitelist.js", name: "LinkWhitelist" },
       { path: "../models/Session.js", name: "Session" },
       { path: "../models/LoginAttempt.js", name: "LoginAttempt" },
       { path: "../models/LoginToken.js", name: "LoginToken" },
       { path: "../models/BotLog.js", name: "BotLog" },
+      { path: "../models/Notification.js", name: "Notification" },
+      { path: "../models/NotificationPreferences.js", name: "NotificationPreferences" },
     ];
 
     for (const { path, name } of models) {

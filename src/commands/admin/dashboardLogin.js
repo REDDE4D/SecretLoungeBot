@@ -32,10 +32,10 @@ export function register(bot) {
     const userId = ctx.from.id.toString();
 
     try {
-      // Check if user is admin or mod
+      // Check if user is owner, admin, or mod
       const user = await getUserMeta(userId);
 
-      if (!user || (user.role !== 'admin' && user.role !== 'mod')) {
+      if (!user || !['owner', 'admin', 'mod'].includes(user.role)) {
         return ctx.reply(
           '❌ Access Denied\n\n' +
           'You do not have permission to access the dashboard. ' +

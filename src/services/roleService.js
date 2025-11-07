@@ -1,10 +1,16 @@
-// Import mongoose from dashboard-api to ensure we use the same instance
-import mongoose from "../../dashboard-api/node_modules/mongoose/index.js";
-import { PERMISSIONS, ROLE_PERMISSIONS } from "../../dashboard-api/config/permissions.js";
+// Import mongoose from dashboard-api's database module to use the correct instance
+import mongoose from "../../dashboard-api/config/database.js";
+import {
+  PERMISSIONS,
+  ROLE_PERMISSIONS,
+  getSystemRolePermissions,
+  clearPermissionsCache,
+} from "../../dashboard-api/config/permissions.js";
 
 // Helper functions to get models at runtime (after database connection)
 const getCustomRole = () => mongoose.model("CustomRole");
 const getUser = () => mongoose.model("User");
+const getSystemRole = () => mongoose.model("SystemRole");
 
 /**
  * Role Service - Handles all custom role CRUD operations and permission management
@@ -13,6 +19,81 @@ const getUser = () => mongoose.model("User");
 // ============================================================================
 // CORE CRUD OPERATIONS
 // ============================================================================
+
+// ---------------------------------------------------------------------------
+// SYSTEM ROLE OPERATIONS
+// ---------------------------------------------------------------------------
+
+/**
+ * Get a system role by ID
+ * @param {string} roleId - System role ID (owner, admin, mod, whitelist, user)
+ * @returns {Promise<SystemRole|null>}
+ */
+export async function getSystemRoleById(roleId) {
+  const SystemRole = getSystemRole();
+  return await SystemRole.getRoleById(roleId);
+}
+
+/**
+ * Get all system roles
+ * @returns {Promise<Array<SystemRole>>}
+ */
+export async function getAllSystemRoles() {
+  const SystemRole = getSystemRole();
+  return await SystemRole.getAllSystemRoles();
+}
+
+/**
+ * Update a system role (emoji, color, permissions)
+ * Owner role cannot be modified for security reasons
+ * @param {string} roleId - System role ID
+ * @param {Object} updates - Fields to update { emoji, color, permissions, description }
+ * @returns {Promise<SystemRole>} - Updated system role
+ */
+export async function updateSystemRole(roleId, updates) {
+  const SystemRole = getSystemRole();
+
+  // Protect owner role from modifications
+  if (roleId === "owner") {
+    throw new Error("Owner role cannot be modified for security reasons");
+  }
+
+  const role = await SystemRole.getRoleById(roleId);
+  if (!role) {
+    throw new Error(`System role "${roleId}" not found`);
+  }
+
+  // Validate permissions if provided
+  if (updates.permissions) {
+    const validPermissions = Object.values(PERMISSIONS);
+    for (const permission of updates.permissions) {
+      // Allow wildcards
+      if (permission === "*" || permission.endsWith(".*")) {
+        continue;
+      }
+      if (!validPermissions.includes(permission)) {
+        throw new Error(`Invalid permission: ${permission}`);
+      }
+    }
+  }
+
+  // Validate color if provided
+  if (updates.color && !["red", "blue", "green", "amber", "purple", "pink", "gray"].includes(updates.color)) {
+    throw new Error(`Invalid color: ${updates.color}`);
+  }
+
+  // Update the role
+  const updatedRole = await SystemRole.updateSystemRole(roleId, updates);
+
+  // Clear permissions cache to ensure changes take effect immediately
+  clearPermissionsCache();
+
+  return updatedRole;
+}
+
+// ---------------------------------------------------------------------------
+// CUSTOM ROLE OPERATIONS
+// ---------------------------------------------------------------------------
 
 /**
  * Create a new custom role
@@ -191,48 +272,64 @@ export async function getRoleByName(name) {
 
 /**
  * Get all roles (system + custom)
- * System roles are returned as virtual objects
+ * System roles are fetched from database
  * @returns {Promise<Array>} - Array of all roles
  */
 export async function getAllRoles() {
   const CustomRole = getCustomRole();
-  const customRoles = await CustomRole.find().sort({ name: 1 });
+  const SystemRole = getSystemRole();
 
-  // System roles as virtual objects
-  const systemRoles = [
-    {
-      roleId: "admin",
-      name: "Administrator",
-      description: "Full access to all features",
-      permissions: ROLE_PERMISSIONS.admin || [],
-      color: "#EF4444", // Red
-      icon: "👑",
-      isSystemRole: true,
-      createdBy: "system",
-    },
-    {
-      roleId: "mod",
-      name: "Moderator",
-      description: "User management and moderation tools",
-      permissions: ROLE_PERMISSIONS.mod || [],
-      color: "#3B82F6", // Blue
-      icon: "🛡️",
-      isSystemRole: true,
-      createdBy: "system",
-    },
-    {
-      roleId: "whitelist",
-      name: "Whitelist",
-      description: "Exempt from compliance checks",
-      permissions: ROLE_PERMISSIONS.whitelist || [],
-      color: "#10B981", // Green
-      icon: "⭐",
-      isSystemRole: true,
-      createdBy: "system",
-    },
-  ];
+  // Fetch both in parallel
+  const [systemRoles, customRoles] = await Promise.all([
+    SystemRole.getAllSystemRoles(),
+    CustomRole.find().sort({ name: 1 }),
+  ]);
 
-  return [...systemRoles, ...customRoles];
+  // Convert SystemRole documents to plain objects for consistency
+  const systemRolesData = systemRoles.map((role) => ({
+    roleId: role.roleId,
+    name: role.name,
+    description: role.description,
+    permissions: role.permissions,
+    color: colorEnumToHex(role.color),
+    icon: role.emoji,
+    isSystemRole: true,
+    isEditable: role.isEditable,
+    createdBy: "system",
+  }));
+
+  // Convert CustomRole documents to plain objects
+  const customRolesData = customRoles.map((role) => ({
+    roleId: role.roleId,
+    name: role.name,
+    description: role.description,
+    permissions: role.permissions,
+    color: role.color,
+    icon: role.icon,
+    isSystemRole: false,
+    isEditable: true,
+    createdBy: role.createdBy,
+  }));
+
+  return [...systemRolesData, ...customRolesData];
+}
+
+/**
+ * Convert color enum to hex code
+ * @param {string} colorEnum - Color enum value
+ * @returns {string} - Hex color code
+ */
+function colorEnumToHex(colorEnum) {
+  const colorMap = {
+    red: "#EF4444",
+    blue: "#3B82F6",
+    green: "#10B981",
+    amber: "#F59E0B",
+    purple: "#A855F7",
+    pink: "#EC4899",
+    gray: "#6B7280",
+  };
+  return colorMap[colorEnum] || "#6B7280";
 }
 
 /**
@@ -346,9 +443,11 @@ export async function setRolePermissions(roleId, permissions) {
  * @returns {Promise<Array<string>>} - Array of permission IDs
  */
 export async function getRolePermissions(roleId) {
-  // Check if it's a system role
-  if (ROLE_PERMISSIONS[roleId]) {
-    return ROLE_PERMISSIONS[roleId];
+  const systemRoles = ["owner", "admin", "mod", "whitelist", "user"];
+
+  // Check if it's a system role - fetch from database
+  if (systemRoles.includes(roleId)) {
+    return await getSystemRolePermissions(roleId);
   }
 
   // Check custom roles
@@ -473,9 +572,10 @@ export async function getUserPermissions(userId) {
 
   const permissions = new Set();
 
-  // Add system role permissions
-  if (user.role && ROLE_PERMISSIONS[user.role]) {
-    ROLE_PERMISSIONS[user.role].forEach((perm) => permissions.add(perm));
+  // Add system role permissions (fetch from database)
+  if (user.role) {
+    const systemRolePerms = await getSystemRolePermissions(user.role);
+    systemRolePerms.forEach((perm) => permissions.add(perm));
   }
 
   // Add custom role permissions

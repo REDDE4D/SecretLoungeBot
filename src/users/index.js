@@ -3,10 +3,28 @@ import bot from "../core/bot.js";
 import { ROLE_PERMISSIONS } from "../../dashboard-api/config/permissions.js";
 import * as roleService from "../services/roleService.js";
 
+/**
+ * Ensure the bot owner (ADMIN_ID) has the owner role
+ * This is called automatically when the owner interacts with the bot
+ */
+export async function ensureOwnerRole(id) {
+  const ownerId = String(process.env.ADMIN_ID);
+  if (String(id) === ownerId) {
+    const user = await User.findById(id);
+    if (user && user.role !== "owner") {
+      await User.updateOne({ _id: id }, { role: "owner" });
+    }
+  }
+}
+
 export async function registerUser(id, alias = null) {
   // Check if user already exists
   const userExists = await User.findById(id);
-  if (userExists) return "❌ You're already registered.";
+  if (userExists) {
+    // Ensure owner has the owner role
+    await ensureOwnerRole(id);
+    return "❌ You're already registered.";
+  }
 
   // Check if alias is taken (only if alias is provided)
   if (alias) {
@@ -21,6 +39,12 @@ export async function registerUser(id, alias = null) {
     if (alias !== null && alias !== undefined) {
       userData.alias = alias;
     }
+
+    // Set owner role if this is the ADMIN_ID
+    if (String(id) === String(process.env.ADMIN_ID)) {
+      userData.role = "owner";
+    }
+
     await User.create(userData);
     return alias ? `✅ Registered as "${alias}"` : "✅ Registered successfully";
   } catch (err) {
@@ -148,7 +172,7 @@ export async function getRole(id) {
 }
 
 export async function setRole(id, role) {
-  if (!["admin", "mod", "whitelist", null].includes(role))
+  if (!["owner", "admin", "mod", "whitelist", null].includes(role))
     return "❌ Invalid role.";
   const res = await User.updateOne({ _id: id }, { role });
   return res.modifiedCount

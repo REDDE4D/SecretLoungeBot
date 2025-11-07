@@ -1,6 +1,9 @@
 // dashboard-api/services/userService.js
 
 import mongoose from "mongoose";
+import bot from "../../src/core/bot.js";
+import { escapeHTML } from "../../src/utils/sanitize.js";
+import * as roleService from "../../src/services/roleService.js";
 
 // Helper to get models at runtime
 const getUser = () => mongoose.model("User");
@@ -85,6 +88,7 @@ export async function getUsers(options = {}) {
       alias: user.alias,
       icon: user.icon,
       role: user.role,
+      customRoles: user.customRoles || [],
       inLobby: user.inLobby,
       status: activity?.status || "offline",
       joinDate: activity?.firstSeen || null,
@@ -118,6 +122,10 @@ export async function getUsers(options = {}) {
  * @returns {Promise<Object>} User details
  */
 export async function getUserDetails(userId) {
+  const User = getUser();
+  const Activity = getActivity();
+  const Report = getReport();
+
   const user = await User.findById(userId).lean();
 
   if (!user) {
@@ -167,6 +175,8 @@ export async function getUserDetails(userId) {
  * @returns {Promise<Object>} Updated user
  */
 export async function updateUserRole(userId, role, moderatorId) {
+  const User = getUser();
+
   const validRoles = ["admin", "mod", "whitelist", null];
   if (!validRoles.includes(role)) {
     throw new Error("Invalid role");
@@ -181,15 +191,18 @@ export async function updateUserRole(userId, role, moderatorId) {
   user.role = role;
   await user.save();
 
+  // Get moderator alias
+  const moderator = await User.findById(moderatorId).lean();
+
   // Log to audit log
   await getAuditLog().create({
     moderatorId,
-    category: "user_management",
+    moderatorAlias: moderator?.alias || "System",
     action: "role_change",
     targetUserId: userId,
     targetAlias: user.alias,
-    details: `Role changed from ${oldRole || "none"} to ${role || "none"}`,
-    metadata: { oldRole, newRole: role },
+    reason: `Role changed from ${oldRole || "none"} to ${role || "none"}`,
+    details: { oldRole, newRole: role },
   });
 
   return {
@@ -208,6 +221,8 @@ export async function updateUserRole(userId, role, moderatorId) {
  * @returns {Promise<Object>} Ban result
  */
 export async function banUser(userId, duration, reason, moderatorId) {
+  const User = getUser();
+
   const user = await User.findById(userId);
   if (!user) {
     throw new Error("User not found");
@@ -221,20 +236,38 @@ export async function banUser(userId, duration, reason, moderatorId) {
   user.inLobby = false; // Remove from lobby when banned
   await user.save();
 
+  // Get moderator alias
+  const moderator = await User.findById(moderatorId).lean();
+
   // Log to audit log
   await getAuditLog().create({
     moderatorId,
-    category: "moderation",
+    moderatorAlias: moderator?.alias || "System",
     action: "ban",
     targetUserId: userId,
     targetAlias: user.alias,
-    details: reason || "No reason provided",
-    metadata: {
+    reason: reason || "No reason provided",
+    details: {
       duration,
       bannedUntil,
       permanent: !duration,
     },
   });
+
+  // Notify user
+  try {
+    const durationText = duration
+      ? `until ${bannedUntil.toLocaleString()}`
+      : "permanently";
+    const reasonText = reason ? `\nReason: ${escapeHTML(reason)}` : "";
+    await bot.telegram.sendMessage(
+      userId,
+      `🚫 <b>You have been banned ${durationText}</b>${reasonText}`,
+      { parse_mode: "HTML" }
+    );
+  } catch (error) {
+    console.error("Failed to notify user about ban:", error);
+  }
 
   return {
     userId,
@@ -253,6 +286,8 @@ export async function banUser(userId, duration, reason, moderatorId) {
  * @returns {Promise<Object>} Mute result
  */
 export async function muteUser(userId, duration, reason, moderatorId) {
+  const User = getUser();
+
   const user = await User.findById(userId);
   if (!user) {
     throw new Error("User not found");
@@ -265,20 +300,38 @@ export async function muteUser(userId, duration, reason, moderatorId) {
   user.mutedUntil = mutedUntil;
   await user.save();
 
+  // Get moderator alias
+  const moderator = await User.findById(moderatorId).lean();
+
   // Log to audit log
   await getAuditLog().create({
     moderatorId,
-    category: "moderation",
+    moderatorAlias: moderator?.alias || "System",
     action: "mute",
     targetUserId: userId,
     targetAlias: user.alias,
-    details: reason || "No reason provided",
-    metadata: {
+    reason: reason || "No reason provided",
+    details: {
       duration,
       mutedUntil,
       permanent: !duration,
     },
   });
+
+  // Notify user
+  try {
+    const durationText = duration
+      ? `until ${mutedUntil.toLocaleString()}`
+      : "permanently";
+    const reasonText = reason ? `\nReason: ${escapeHTML(reason)}` : "";
+    await bot.telegram.sendMessage(
+      userId,
+      `🔇 <b>You have been muted ${durationText}</b>${reasonText}`,
+      { parse_mode: "HTML" }
+    );
+  } catch (error) {
+    console.error("Failed to notify user about mute:", error);
+  }
 
   return {
     userId,
@@ -296,6 +349,8 @@ export async function muteUser(userId, duration, reason, moderatorId) {
  * @returns {Promise<Object>} Kick result
  */
 export async function kickUser(userId, reason, moderatorId) {
+  const User = getUser();
+
   const user = await User.findById(userId);
   if (!user) {
     throw new Error("User not found");
@@ -304,15 +359,31 @@ export async function kickUser(userId, reason, moderatorId) {
   user.inLobby = false;
   await user.save();
 
+  // Get moderator alias
+  const moderator = await User.findById(moderatorId).lean();
+
   // Log to audit log
   await getAuditLog().create({
     moderatorId,
-    category: "moderation",
+    moderatorAlias: moderator?.alias || "System",
     action: "kick",
     targetUserId: userId,
     targetAlias: user.alias,
-    details: reason || "No reason provided",
+    reason: reason || "No reason provided",
+    details: {},
   });
+
+  // Notify user
+  try {
+    const reasonText = reason ? `\nReason: ${escapeHTML(reason)}` : "";
+    await bot.telegram.sendMessage(
+      userId,
+      `👢 <b>You have been kicked from the lobby</b>${reasonText}\n\nYou can rejoin using /join`,
+      { parse_mode: "HTML" }
+    );
+  } catch (error) {
+    console.error("Failed to notify user about kick:", error);
+  }
 
   return {
     userId,
@@ -328,6 +399,8 @@ export async function kickUser(userId, reason, moderatorId) {
  * @returns {Promise<Object>} Result
  */
 export async function removeRestrictions(userId, moderatorId) {
+  const User = getUser();
+
   const user = await User.findById(userId);
   if (!user) {
     throw new Error("User not found");
@@ -343,13 +416,17 @@ export async function removeRestrictions(userId, moderatorId) {
 
   // Log to audit log
   if (hadRestrictions) {
+    // Get moderator alias
+    const moderator = await User.findById(moderatorId).lean();
+
     await getAuditLog().create({
       moderatorId,
-      category: "moderation",
+      moderatorAlias: moderator?.alias || "System",
       action: "unrestrict",
       targetUserId: userId,
       targetAlias: user.alias,
-      details: "All restrictions removed",
+      reason: "All restrictions removed",
+      details: {},
     });
   }
 
@@ -368,6 +445,8 @@ export async function removeRestrictions(userId, moderatorId) {
  * @returns {Promise<Object>} Result
  */
 export async function toggleMediaRestriction(userId, restricted, moderatorId) {
+  const User = getUser();
+
   const user = await User.findById(userId);
   if (!user) {
     throw new Error("User not found");
@@ -376,17 +455,31 @@ export async function toggleMediaRestriction(userId, restricted, moderatorId) {
   user.mediaRestricted = restricted;
   await user.save();
 
+  // Get moderator alias
+  const moderator = await User.findById(moderatorId).lean();
+
   // Log to audit log
   await getAuditLog().create({
     moderatorId,
-    category: "moderation",
+    moderatorAlias: moderator?.alias || "System",
     action: restricted ? "media_restrict" : "media_unrestrict",
     targetUserId: userId,
     targetAlias: user.alias,
-    details: restricted
+    reason: restricted
       ? "Media sending restricted"
       : "Media sending allowed",
+    details: { restricted },
   });
+
+  // Notify user
+  try {
+    const message = restricted
+      ? "🖼️ <b>Your media sending privileges have been restricted</b>\n\nYou can only send text messages."
+      : "✅ <b>Your media sending privileges have been restored</b>\n\nYou can now send media again.";
+    await bot.telegram.sendMessage(userId, message, { parse_mode: "HTML" });
+  } catch (error) {
+    console.error("Failed to notify user about media restriction:", error);
+  }
 
   return {
     userId,
@@ -403,6 +496,8 @@ export async function toggleMediaRestriction(userId, restricted, moderatorId) {
  * @returns {Promise<Object>} Warning result
  */
 export async function warnUser(userId, reason, moderatorId) {
+  const User = getUser();
+
   const user = await User.findById(userId);
   if (!user) {
     throw new Error("User not found");
@@ -411,22 +506,147 @@ export async function warnUser(userId, reason, moderatorId) {
   user.warnings = (user.warnings || 0) + 1;
   await user.save();
 
+  // Get moderator alias
+  const moderator = await User.findById(moderatorId).lean();
+
   // Log to audit log
   await getAuditLog().create({
     moderatorId,
-    category: "moderation",
+    moderatorAlias: moderator?.alias || "System",
     action: "warn",
     targetUserId: userId,
     targetAlias: user.alias,
-    details: reason || "No reason provided",
-    metadata: {
+    reason: reason || "No reason provided",
+    details: {
       warningCount: user.warnings,
     },
   });
+
+  // Notify user
+  try {
+    const reasonText = reason ? `\nReason: ${escapeHTML(reason)}` : "";
+    await bot.telegram.sendMessage(
+      userId,
+      `⚠️ <b>You have received a warning</b>${reasonText}\n\nTotal warnings: ${user.warnings}`,
+      { parse_mode: "HTML" }
+    );
+  } catch (error) {
+    console.error("Failed to notify user about warning:", error);
+  }
 
   return {
     userId,
     alias: user.alias,
     warnings: user.warnings,
+  };
+}
+
+/**
+ * Get user's roles (system role + custom roles)
+ * @param {string} userId - Telegram user ID
+ * @returns {Promise<Object>} User roles with details
+ */
+export async function getUserRoles(userId) {
+  const User = getUser();
+
+  const user = await User.findById(userId).lean();
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Get custom role details
+  const customRoles = await roleService.getUserRoles(userId);
+
+  return {
+    userId,
+    alias: user.alias,
+    systemRole: user.role || null,
+    customRoles: customRoles.customRoles || [],
+  };
+}
+
+/**
+ * Assign a custom role to a user
+ * @param {string} userId - Telegram user ID
+ * @param {string} roleId - Custom role ID to assign
+ * @param {string} moderatorId - ID of moderator making the change
+ * @returns {Promise<Object>} Result
+ */
+export async function assignCustomRole(userId, roleId, moderatorId) {
+  const User = getUser();
+
+  const user = await User.findById(userId).lean();
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Use roleService to assign the role
+  await roleService.assignRoleToUser(userId, roleId);
+
+  // Get role details for the response
+  const role = await roleService.getRoleById(roleId);
+
+  // Get moderator alias
+  const moderator = await User.findById(moderatorId).lean();
+
+  // Log to audit log
+  await getAuditLog().create({
+    moderatorId,
+    moderatorAlias: moderator?.alias || "System",
+    action: "custom_role_assign",
+    targetUserId: userId,
+    targetAlias: user.alias,
+    reason: `Custom role "${role?.name || roleId}" assigned`,
+    details: { roleId, roleName: role?.name },
+  });
+
+  return {
+    userId,
+    alias: user.alias,
+    roleId,
+    roleName: role?.name || roleId,
+  };
+}
+
+/**
+ * Remove a custom role from a user
+ * @param {string} userId - Telegram user ID
+ * @param {string} roleId - Custom role ID to remove
+ * @param {string} moderatorId - ID of moderator making the change
+ * @returns {Promise<Object>} Result
+ */
+export async function removeCustomRole(userId, roleId, moderatorId) {
+  const User = getUser();
+
+  const user = await User.findById(userId).lean();
+  if (!user) {
+    throw new Error("User not found");
+  }
+
+  // Get role details before removing
+  const role = await roleService.getRoleById(roleId);
+
+  // Use roleService to remove the role
+  await roleService.removeRoleFromUser(userId, roleId);
+
+  // Get moderator alias
+  const moderator = await User.findById(moderatorId).lean();
+
+  // Log to audit log
+  await getAuditLog().create({
+    moderatorId,
+    moderatorAlias: moderator?.alias || "System",
+    action: "custom_role_remove",
+    targetUserId: userId,
+    targetAlias: user.alias,
+    reason: `Custom role "${role?.name || roleId}" removed`,
+    details: { roleId, roleName: role?.name },
+  });
+
+  return {
+    userId,
+    alias: user.alias,
+    roleId,
+    roleName: role?.name || roleId,
   };
 }

@@ -35,7 +35,7 @@ Expected response:
 ```json
 {
   "success": true,
-  "message": "TG-Lobby-Bot Dashboard API",
+  "message": "SecretLounge-Bot Dashboard API",
   "version": "1.0.0",
   "phase": "Phase 1 - Backend API Foundation",
   "endpoints": {

@@ -41,7 +41,7 @@ export function initializeSocket(httpServer, corsOptions) {
       }
 
       // Check if user has dashboard access
-      const permissions = getPermissionsForRole(user.role, user.customRole);
+      const permissions = await getPermissionsForRole(user.role);
 
       if (!permissions.includes("dashboard.access") && !permissions.includes("*")) {
         return next(new Error("Dashboard access denied"));
@@ -68,6 +68,11 @@ export function initializeSocket(httpServer, corsOptions) {
   // Connection handler
   io.on("connection", (socket) => {
     console.log(`✅ WebSocket connected: ${socket.userAlias} (${socket.userId}) [${socket.userRole || "user"}]`);
+
+    // Join personal user room for notifications
+    const personalRoom = `user:${socket.userId}`;
+    socket.join(personalRoom);
+    console.log(`   📍 Joined personal room: ${personalRoom}`);
 
     // Join appropriate rooms based on role
     const rooms = getRoomsForUser(socket.userRole, socket.permissions);
@@ -128,6 +133,14 @@ function getRoomsForUser(role, permissions) {
     permissions.includes("stats.view_messages")
   ) {
     rooms.push("stats-room");
+  }
+
+  // Logs room (users who can view bot logs)
+  if (
+    permissions.includes("*") ||
+    permissions.includes("logs.view_bot")
+  ) {
+    rooms.push("logs-room");
   }
 
   return rooms;

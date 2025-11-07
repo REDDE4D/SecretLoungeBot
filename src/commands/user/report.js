@@ -106,6 +106,26 @@ export function register(bot) {
 
     // Notify all mods and admins
     await notifyModerators(ctx.telegram, report, reportedAlias);
+
+    // Emit real-time notification to dashboard via HTTP
+    try {
+      await fetch("http://localhost:3001/api/internal/emit/report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          reportId: report._id.toString(),
+          reporterId: report.reporterId,
+          reportedUserId: report.reportedUserId,
+          reportedAlias: report.reportedAlias,
+          messagePreview: report.messagePreview,
+          messageType: report.messageType,
+          reason: report.reason,
+          createdAt: report.createdAt,
+        }),
+      });
+    } catch (err) {
+      console.error("Failed to emit dashboard notification:", err);
+    }
   });
 }
 
@@ -114,9 +134,9 @@ export function register(bot) {
  */
 async function notifyModerators(telegram, report, reportedAlias) {
   try {
-    // Find all mods and admins
+    // Find all mods, admins, and owner
     const moderators = await User.find({
-      role: { $in: ["mod", "admin"] },
+      role: { $in: ["owner", "admin", "mod"] },
     }).lean();
 
     if (moderators.length === 0) return;

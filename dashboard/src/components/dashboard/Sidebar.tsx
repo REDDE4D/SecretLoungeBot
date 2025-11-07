@@ -15,6 +15,7 @@ import {
   LogOut,
   Link as LinkIcon,
   ScrollText,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -28,6 +29,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Notifications', href: '/dashboard/notifications', icon: Bell },
   { label: 'Users', href: '/dashboard/users', icon: Users, permission: 'users.view' },
   { label: 'Moderation', href: '/dashboard/moderation', icon: Shield, permission: 'moderation.view_reports' },
   { label: 'Content', href: '/dashboard/content', icon: FileText, permission: 'content.view_filters' },
@@ -48,6 +50,31 @@ export function Sidebar() {
     window.location.href = '/login';
   };
 
+  // Determine display name: firstName + lastName > username > alias > 'User'
+  const getDisplayName = () => {
+    if (user?.firstName) {
+      const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+      return fullName;
+    }
+    if (user?.username) {
+      return `@${user.username}`;
+    }
+    return user?.alias || 'User';
+  };
+
+  // Get initials for avatar
+  const getInitials = () => {
+    if (user?.firstName) {
+      const firstInitial = user.firstName[0]?.toUpperCase() || '';
+      const lastInitial = user.lastName?.[0]?.toUpperCase() || '';
+      return firstInitial + lastInitial || firstInitial || 'U';
+    }
+    if (user?.username) {
+      return user.username[0]?.toUpperCase() || 'U';
+    }
+    return user?.alias?.[0]?.toUpperCase() || 'U';
+  };
+
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card/50 backdrop-blur-xl">
       <div className="flex h-16 items-center border-b px-6">
@@ -57,7 +84,7 @@ export function Sidebar() {
         >
           <span className="text-2xl">🤖</span>
           <span className="text-lg text-gradient">
-            TG-Lobby-Bot
+            SecretLounge-Bot
           </span>
         </Link>
       </div>
@@ -95,10 +122,10 @@ export function Sidebar() {
         <div className="rounded-xl bg-gradient-to-br from-muted/80 to-accent/20 p-3 backdrop-blur-sm border border-border/50 transition-all duration-300 hover:shadow-md">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground font-semibold shadow-md">
-              {user?.username?.[0]?.toUpperCase() || 'U'}
+              {getInitials()}
             </div>
             <div className="flex-1 overflow-hidden">
-              <p className="truncate text-sm font-semibold">{user?.username || 'User'}</p>
+              <p className="truncate text-sm font-semibold">{getDisplayName()}</p>
               <p className="truncate text-xs text-muted-foreground capitalize">
                 <span className="inline-flex items-center gap-1">
                   {user?.role === 'admin' && '👑'} {user?.role || 'user'}

@@ -7,6 +7,168 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2025-01-07
+
+### Added
+
+- **Comprehensive Documentation System**
+  - Complete `docs/` directory with 130KB+ of detailed documentation
+  - `docs/COMMANDS.md` - Full reference for 50+ bot commands with examples and parameters
+  - `docs/MODELS.md` - Detailed database schemas for all 20+ models with field descriptions
+  - `docs/SYSTEMS.md` - In-depth documentation for all bot systems and features (60KB)
+  - `docs/DASHBOARD.md` - Complete dashboard architecture, API endpoints, and deployment guide
+  - CLAUDE.md updated with references to detailed docs instead of inline documentation
+  - Cleaner project structure with separation of concerns
+
+- **In-App Notification System**
+  - Full notification infrastructure for dashboard users
+  - `Notification` model with type, title, message, priority, read status, and TTL
+  - `NotificationPreferences` model for per-user notification settings
+  - Notification types: report, moderation, user_action, system, security, announcement
+  - Priority levels: low, medium, high, critical
+  - `/api/notifications` REST endpoints for fetching, marking read, deleting notifications
+  - `/api/notifications/preferences` endpoints for managing notification settings
+  - Notification service with automatic cleanup of old notifications (30-day TTL)
+  - Dashboard notification center with real-time updates via WebSocket
+  - Notification bell icon with unread count badge
+  - Per-notification type enable/disable settings
+  - Sound and desktop notification preferences
+
+- **Internal Bot-to-Dashboard API**
+  - New `/api/internal` routes for bot to trigger dashboard events
+  - Internal endpoints for emitting: reports, moderation actions, spam alerts, user join/leave, settings changes, audit logs
+  - Secure internal communication channel for real-time event propagation
+  - Automatic stats updates triggered by bot events
+  - WebSocket emission integration with bot actions
+
+- **System Health Monitoring**
+  - System controller and service for monitoring bot health
+  - `/api/system/health` endpoint returning bot status, memory, uptime
+  - `/api/system/stats` endpoint for comprehensive system statistics
+  - Real-time system health metrics via WebSocket
+  - Memory usage tracking and reporting
+
+- **Bot Restart Command**
+  - `/restart` and `/reload` owner-only commands for restarting bot via PM2
+  - Graceful restart with user notification before process reload
+  - Fallback to process exit if PM2 reload fails
+  - Audit logging for restart operations
+  - 2-second delay to ensure notification delivery before restart
+
+- **Database Migration System**
+  - New `src/migrations/` directory for database schema migrations
+  - `createSystemRoles.js` migration for populating system roles on startup
+  - Automatic migration execution during bot initialization
+  - Support for future schema changes and data migrations
+
+- **Enhanced User Management**
+  - User ban notifications sent via Telegram when user is banned
+  - User mute notifications sent via Telegram when user is muted
+  - Improved audit logging with moderator alias included
+  - Custom roles display in user listings (dashboard and API)
+  - Better error handling for user notification failures
+
+- **Dashboard UI Enhancements**
+  - New `dashboard/src/app/dashboard/notifications/` page for notification center
+  - `dashboard/src/components/common/` directory for reusable UI components
+  - `dashboard/src/components/users/` directory for user management components
+  - `SystemRoleEditDialog.tsx` component for editing system role properties
+  - Improved user table with custom roles display
+  - Enhanced permission matrix with visual role indicators
+  - Better audit log display with action categories
+
+### Changed
+
+- **Permission System Improvements**
+  - Enhanced RBAC middleware with better error handling
+  - Permission checks now include custom role validation
+  - 5-minute caching for permission checks to reduce database load
+  - Permission config now reads from database with fallback to hardcoded defaults
+  - Better separation between system roles and custom roles
+
+- **Socket Service Enhancements**
+  - Extended WebSocket events for notifications and system health
+  - Better connection management with keepalive pings
+  - Improved error handling for socket emissions
+  - Automatic reconnection support for dashboard clients
+  - More granular event types for better real-time updates
+
+- **Service Layer Improvements**
+  - User service now includes ban/mute notifications
+  - Auth service improved with better token handling
+  - Moderation service enhanced with notification creation
+  - Stats service optimized with better caching
+  - Socket service expanded with more event types
+
+- **Dashboard API Routes**
+  - Reorganized route structure for better maintainability
+  - New internal routes for bot-to-dashboard communication
+  - Notification routes for notification management
+  - System routes for health monitoring
+  - Better route organization and separation of concerns
+
+- **Link Detection Improvements**
+  - Enhanced URL pattern matching
+  - Better handling of edge cases in link spam detection
+  - Improved performance for link extraction
+
+- **Relay System Updates**
+  - Better error context in relay failures
+  - Improved logging for debugging relay issues
+  - Enhanced media group handling
+  - Better tracking of relay statistics
+
+### Fixed
+
+- **Audit Log Schema Consistency**
+  - Standardized audit log field names across all services
+  - Changed `category` to `action` for consistency
+  - Changed `details` to `reason` for better clarity
+  - Changed `metadata` to `details` for additional context
+  - All audit log entries now include moderator alias
+
+- **Dashboard Request Format Mismatches**
+  - Fixed inconsistent request/response formats between frontend and API
+  - Standardized API response structures
+  - Better error response formatting
+
+- **Tab Persistence Issues**
+  - Fixed settings page tab persistence after saving
+  - Applied tab persistence fix to all dashboard pages with tabs
+  - Better state management for tabbed interfaces
+
+- **Socket Connection Issues**
+  - Improved WebSocket connection reliability
+  - Better handling of connection drops
+  - Enhanced reconnection logic
+
+## [2.2.0] - 2025-01-06
+
+### Added
+
+- **Editable Standard Roles with Visual Badges**
+  - System roles (Admin, Mod, Whitelist, Regular) now stored in database and fully editable
+  - Customizable role emojis displayed after user alias in chat messages
+  - Emoji-only badges for privileged roles (admin 👑, mod 🛡️, whitelist ⭐)
+  - Role emoji picker in dashboard with common emojis and custom emoji support
+  - System Role Edit Dialog for managing emoji, color, permissions, and descriptions
+  - Owner role protected from modifications for security
+  - Real-time permission updates with 5-minute caching
+  - Role badges visible in dashboard permission matrix and user management pages
+  - Automatic migration on startup to populate system roles with default values
+  - `SystemRole` model for database-stored role configuration
+  - Database-backed permission system with fallback to hardcoded defaults
+  - Visual role indicators throughout dashboard UI
+
+### Changed
+
+- Permission system now reads from database instead of hardcoded config
+- System roles (except Owner) can now be edited through dashboard
+- Message relay headers now include role emoji badges for privileged users
+- Dashboard permissions page allows editing system role properties
+- Role permissions cached for 5 minutes to minimize database queries
+- Permission matrix displays role emojis in column headers
+
 ## [2.1.0] - 2025-11-05
 
 ### Added

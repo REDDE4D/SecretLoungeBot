@@ -35,6 +35,7 @@ interface AuditLog {
   performedByAlias: string;
   targetUserId?: string;
   targetAlias?: string;
+  reason?: string;
   details: Record<string, any>;
   ipAddress?: string;
   userAgent?: string;
@@ -269,13 +270,16 @@ export default function AuditLogPage() {
                         )}
                       </TableCell>
                       <TableCell className="max-w-md">
-                        <div className="text-sm">
-                          {log.details && Object.keys(log.details).length > 0 ? (
+                        <div className="text-sm space-y-2">
+                          {log.reason && (
+                            <div className="text-muted-foreground">{log.reason}</div>
+                          )}
+                          {log.details && Object.keys(log.details).length > 0 && (
                             <div className="space-y-1">
                               {Object.entries(log.details).slice(0, 3).map(([key, value]) => (
-                                <div key={key} className="flex gap-2">
-                                  <span className="text-muted-foreground">{key}:</span>
-                                  <span className="font-mono text-xs">
+                                <div key={key} className="flex gap-2 text-xs">
+                                  <span className="text-muted-foreground font-medium">{key}:</span>
+                                  <span className="font-mono">
                                     {typeof value === 'object'
                                       ? JSON.stringify(value)
                                       : String(value)}
@@ -283,7 +287,8 @@ export default function AuditLogPage() {
                                 </div>
                               ))}
                             </div>
-                          ) : (
+                          )}
+                          {!log.reason && (!log.details || Object.keys(log.details).length === 0) && (
                             <span className="text-muted-foreground">No details</span>
                           )}
                         </div>

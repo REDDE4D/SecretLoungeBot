@@ -10,6 +10,9 @@ import exportRoutes from "./export.js";
 import batchRoutes from "./batch.js";
 import linksRoutes from "./links.js";
 import logsRoutes from "./logs.js";
+import systemRoutes from "./system.js";
+import notificationsRoutes from "./notifications.js";
+import internalRoutes from "./internal.js";
 
 const router = express.Router();
 
@@ -31,7 +34,7 @@ router.get("/health", (req, res) => {
 router.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "TG-Lobby-Bot Dashboard API",
+    message: "SecretLounge-Bot Dashboard API",
     version: "2.1.0",
     phase: "Phase 7 - Advanced Features (In Progress)",
     endpoints: {
@@ -47,6 +50,8 @@ router.get("/", (req, res) => {
       batch: "POST /api/batch/*",
       links: "GET /api/links/*",
       logs: "POST /api/logs/*",
+      system: "POST /api/system/*",
+      notifications: "GET /api/notifications/*",
     },
   });
 });
@@ -65,5 +70,8 @@ router.use("/export", exportRoutes);
 router.use("/batch", batchRoutes);
 router.use("/links", linksRoutes);
 router.use("/logs", logsRoutes);
+router.use("/system", systemRoutes);
+router.use("/notifications", notificationsRoutes);
+router.use("/internal", internalRoutes);
 
 export default router;

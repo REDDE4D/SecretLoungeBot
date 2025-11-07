@@ -26,6 +26,7 @@ import { Shield, Users, Check, X, Plus, Edit, Trash2 } from 'lucide-react';
 import { CreateRoleDialog } from '@/components/permissions/CreateRoleDialog';
 import { EditRoleDialog } from '@/components/permissions/EditRoleDialog';
 import { DeleteRoleDialog } from '@/components/permissions/DeleteRoleDialog';
+import SystemRoleEditDialog from '@/components/permissions/SystemRoleEditDialog';
 
 interface Permission {
   id: string;
@@ -45,7 +46,9 @@ interface Role {
   userCount: number;
   permissions: string[];
   isSystemRole: boolean;
+  isEditable?: boolean;
   color: string;
+  emoji?: string;
 }
 
 interface User {
@@ -77,6 +80,7 @@ export default function PermissionsPage() {
   const [showUsersDialog, setShowUsersDialog] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showSystemRoleEditDialog, setShowSystemRoleEditDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [currentTab, setCurrentTab] = useState('roles');
   const { toast } = useToast();
@@ -145,7 +149,11 @@ export default function PermissionsPage() {
 
   const handleEditRole = (role: Role) => {
     setSelectedRole(role);
-    setShowEditDialog(true);
+    if (role.isSystemRole) {
+      setShowSystemRoleEditDialog(true);
+    } else {
+      setShowEditDialog(true);
+    }
   };
 
   const handleDeleteRole = (role: Role) => {
@@ -156,6 +164,31 @@ export default function PermissionsPage() {
   const handleRoleChange = () => {
     // Refresh data after create/edit/delete
     fetchData();
+  };
+
+  const handleSystemRoleSave = async (updates: any) => {
+    if (!selectedRole) return;
+
+    try {
+      const response = await apiClient.put(`/permissions/roles/${selectedRole.id}`, updates);
+      const data = response as any;
+
+      if (data.success) {
+        toast({
+          title: 'Success',
+          description: 'System role updated successfully',
+        });
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Error updating system role:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update system role',
+        variant: 'destructive',
+      });
+      throw error;
+    }
   };
 
   const getRoleBadgeColor = (color: string) => {
@@ -172,8 +205,8 @@ export default function PermissionsPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading permissions...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading permissions...</p>
         </div>
       </div>
     );
@@ -185,7 +218,7 @@ export default function PermissionsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Permissions Management</h1>
-          <p className="text-gray-500 mt-2">Manage roles and their permissions</p>
+          <p className="text-muted-foreground mt-2">Manage roles and their permissions</p>
         </div>
         <Button onClick={() => setShowCreateDialog(true)}>
           <Plus className="h-4 w-4 mr-2" />
@@ -207,19 +240,21 @@ export default function PermissionsPage() {
               <Card key={role.id}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <Badge className={getRoleBadgeColor(role.color)}>{role.name}</Badge>
-                    <Shield className="h-5 w-5 text-gray-400" />
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      {role.emoji && <span>{role.emoji}</span>}
+                      {role.name}
+                    </CardTitle>
+                    <Shield className="h-5 w-5 text-muted-foreground/50" />
                   </div>
-                  <CardTitle className="text-lg">{role.name}</CardTitle>
                   <CardDescription>{role.description}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Users</span>
+                    <span className="text-sm text-muted-foreground">Users</span>
                     <span className="font-semibold">{role.userCount}</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">Permissions</span>
+                    <span className="text-sm text-muted-foreground">Permissions</span>
                     <span className="font-semibold">{role.permissions.length}</span>
                   </div>
                   <Button
@@ -231,7 +266,8 @@ export default function PermissionsPage() {
                     <Users className="h-4 w-4 mr-2" />
                     View Users
                   </Button>
-                  {!role.isSystemRole && (
+                  {/* Show edit button for custom roles and editable system roles (not Owner) */}
+                  {(!role.isSystemRole || (role.isEditable && role.id !== 'owner')) && (
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
@@ -242,15 +278,23 @@ export default function PermissionsPage() {
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
                       </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleDeleteRole(role)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
+                      {!role.isSystemRole && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => handleDeleteRole(role)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                  {role.isSystemRole && (
+                    <div className="text-xs text-center text-muted-foreground">
+                      System Role
+                      {role.id === 'owner' && ' (Protected)'}
                     </div>
                   )}
                 </CardContent>
@@ -277,10 +321,13 @@ export default function PermissionsPage() {
                       {roles.map((role) => (
                         <TableHead key={role.id} className="text-center">
                           <div className="flex flex-col items-center">
+                            {role.emoji && (
+                              <span className="text-xl mb-1">{role.emoji}</span>
+                            )}
                             <Badge className={getRoleBadgeColor(role.color) + ' mb-1'}>
                               {role.name}
                             </Badge>
-                            <span className="text-xs text-gray-500">{role.userCount} users</span>
+                            <span className="text-xs text-muted-foreground">{role.userCount} users</span>
                           </div>
                         </TableHead>
                       ))}
@@ -289,8 +336,8 @@ export default function PermissionsPage() {
                   <TableBody>
                     {Object.entries(permissions).map(([category, perms]) => (
                       <>
-                        <TableRow key={`category-${category}`} className="bg-gray-50">
-                          <TableCell colSpan={roles.length + 1} className="font-semibold">
+                        <TableRow key={`category-${category}`} className="bg-muted/50 dark:bg-muted/30">
+                          <TableCell colSpan={roles.length + 1} className="font-semibold text-foreground">
                             {category.charAt(0).toUpperCase() + category.slice(1)}
                           </TableCell>
                         </TableRow>
@@ -299,7 +346,7 @@ export default function PermissionsPage() {
                             <TableCell>
                               <div>
                                 <div className="font-medium">{perm.id}</div>
-                                <div className="text-sm text-gray-500">{perm.description}</div>
+                                <div className="text-sm text-muted-foreground">{perm.description}</div>
                               </div>
                             </TableCell>
                             {roles.map((role) => (
@@ -307,7 +354,7 @@ export default function PermissionsPage() {
                                 {hasPermission(role, perm.id) ? (
                                   <Check className="h-5 w-5 text-green-500 mx-auto" />
                                 ) : (
-                                  <X className="h-5 w-5 text-gray-300 mx-auto" />
+                                  <X className="h-5 w-5 text-muted-foreground/30 mx-auto" />
                                 )}
                               </TableCell>
                             ))}
@@ -336,10 +383,10 @@ export default function PermissionsPage() {
                     {perms.map((perm) => (
                       <div
                         key={perm.id}
-                        className="p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+                        className="p-3 border rounded-lg hover:bg-muted/50 dark:hover:bg-muted/30 transition-colors"
                       >
                         <div className="font-medium text-sm">{perm.id}</div>
-                        <div className="text-xs text-gray-500 mt-1">{perm.description}</div>
+                        <div className="text-xs text-muted-foreground mt-1">{perm.description}</div>
                       </div>
                     ))}
                   </div>
@@ -365,10 +412,10 @@ export default function PermissionsPage() {
 
           {loadingUsers ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
           ) : roleUsers.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-muted-foreground">
               No users with this role
             </div>
           ) : (
@@ -394,7 +441,7 @@ export default function PermissionsPage() {
                         {user.inLobby ? 'In Lobby' : 'Left'}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-500">
+                    <TableCell className="text-sm text-muted-foreground">
                       {new Date(user.joinedAt).toLocaleDateString()}
                     </TableCell>
                   </TableRow>
@@ -429,6 +476,16 @@ export default function PermissionsPage() {
         role={selectedRole}
         onRoleDeleted={handleRoleChange}
       />
+
+      {/* System Role Edit Dialog */}
+      {showSystemRoleEditDialog && selectedRole && (
+        <SystemRoleEditDialog
+          role={selectedRole}
+          allPermissions={permissions}
+          onClose={() => setShowSystemRoleEditDialog(false)}
+          onSave={handleSystemRoleSave}
+        />
+      )}
     </div>
   );
 }

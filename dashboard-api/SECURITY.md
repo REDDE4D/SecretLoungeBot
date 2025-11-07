@@ -1,6 +1,6 @@
 # Dashboard API Security
 
-This document outlines the security measures implemented in the TG-Lobby-Bot Dashboard API.
+This document outlines the security measures implemented in the SecretLounge-Bot Dashboard API.
 
 ## Table of Contents
 

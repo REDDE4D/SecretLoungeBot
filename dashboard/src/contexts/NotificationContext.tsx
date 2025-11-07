@@ -2,11 +2,13 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { useSocket } from './SocketContext';
+import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { apiClient } from '@/lib/api';
 
 export interface Notification {
   id: string;
-  type: 'report' | 'moderation' | 'spam' | 'user' | 'settings' | 'audit' | 'info';
+  type: 'report' | 'moderation' | 'spam' | 'user_joined' | 'user_left' | 'user_status' | 'settings' | 'audit' | 'bot_log';
   title: string;
   message: string;
   timestamp: Date;
@@ -17,22 +19,90 @@ export interface Notification {
 interface NotificationContextType {
   notifications: Notification[];
   unreadCount: number;
+  loading: boolean;
   addNotification: (notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => void;
-  markAsRead: (id: string) => void;
-  markAllAsRead: () => void;
-  clearNotification: (id: string) => void;
-  clearAll: () => void;
+  markAsRead: (id: string) => Promise<void>;
+  markAllAsRead: () => Promise<void>;
+  clearNotification: (id: string) => Promise<void>;
+  clearAll: () => Promise<void>;
   soundEnabled: boolean;
-  setSoundEnabled: (enabled: boolean) => void;
+  setSoundEnabled: (enabled: boolean) => Promise<void>;
+  desktopPushEnabled: boolean;
+  setDesktopPushEnabled: (enabled: boolean) => Promise<void>;
+  refreshNotifications: () => Promise<void>;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [soundEnabled, setSoundEnabledState] = useState(true);
+  const [desktopPushEnabled, setDesktopPushEnabledState] = useState(false);
   const { subscribe, unsubscribe, connected } = useSocket();
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
+
+  // Load notifications from API
+  const loadNotifications = useCallback(async () => {
+    if (!isAuthenticated) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await apiClient.get<{ notifications: any[]; unreadCount: number; pagination: any }>('/notifications');
+
+      if (response.success && response.data) {
+        const loadedNotifications = response.data.notifications.map((n: any) => ({
+          ...n,
+          id: n._id, // Map MongoDB _id to id
+          timestamp: new Date(n.timestamp),
+        }));
+        setNotifications(loadedNotifications);
+      }
+    } catch (error: any) {
+      // Silently ignore 401 errors (not authenticated)
+      if (error.response?.status !== 401) {
+        console.error('Failed to load notifications:', error);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [isAuthenticated]);
+
+  // Load notification preferences
+  const loadPreferences = useCallback(async () => {
+    if (!isAuthenticated) {
+      return;
+    }
+
+    try {
+      const response = await apiClient.get<{ preferences: any }>('/notifications/preferences');
+
+      if (response.success && response.data) {
+        setSoundEnabledState(response.data.preferences.soundEnabled);
+        setDesktopPushEnabledState(response.data.preferences.desktopPushEnabled);
+      }
+    } catch (error: any) {
+      // Silently ignore 401 errors (not authenticated)
+      if (error.response?.status !== 401) {
+        console.error('Failed to load notification preferences:', error);
+      }
+    }
+  }, [isAuthenticated]);
+
+  // Initial load and auth state changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      loadNotifications();
+      loadPreferences();
+    } else {
+      // Clear notifications when logged out
+      setNotifications([]);
+      setLoading(false);
+    }
+  }, [isAuthenticated, loadNotifications, loadPreferences]);
 
   // Play notification sound
   const playSound = useCallback(() => {
@@ -49,7 +119,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [soundEnabled]);
 
-  // Add notification
+  // Show desktop notification
+  const showDesktopNotification = useCallback((title: string, message: string) => {
+    if (!desktopPushEnabled || typeof window === 'undefined') return;
+
+    if ('Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, {
+          body: message,
+          icon: '/logo.png',
+          tag: 'lobby-notification',
+        });
+      } catch (error) {
+        console.error('Failed to show desktop notification:', error);
+      }
+    }
+  }, [desktopPushEnabled]);
+
+  // Add notification (local only, used for WebSocket events)
   const addNotification = useCallback((notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) => {
     const newNotification: Notification = {
       ...notification,
@@ -58,8 +145,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       read: false,
     };
 
-    setNotifications((prev) => [newNotification, ...prev].slice(0, 50)); // Keep last 50
+    setNotifications((prev) => [newNotification, ...prev]);
     playSound();
+    showDesktopNotification(notification.title, notification.message);
 
     // Show toast notification
     toast({
@@ -67,35 +155,122 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       description: notification.message,
       duration: 5000,
     });
-  }, [playSound, toast]);
+  }, [playSound, showDesktopNotification, toast]);
 
   // Mark as read
-  const markAsRead = useCallback((id: string) => {
-    setNotifications((prev) =>
-      prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
-    );
+  const markAsRead = useCallback(async (id: string) => {
+    try {
+      const response = await apiClient.patch(`/notifications/${id}/read`, {});
+
+      if (response.success) {
+        setNotifications((prev) =>
+          prev.map((notif) => (notif.id === id ? { ...notif, read: true } : notif))
+        );
+      }
+    } catch (error) {
+      console.error('Failed to mark notification as read:', error);
+    }
   }, []);
 
   // Mark all as read
-  const markAllAsRead = useCallback(() => {
-    setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
+  const markAllAsRead = useCallback(async () => {
+    try {
+      const response = await apiClient.patch('/notifications/read-all', {});
+
+      if (response.success) {
+        setNotifications((prev) => prev.map((notif) => ({ ...notif, read: true })));
+      }
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+    }
   }, []);
 
   // Clear notification
-  const clearNotification = useCallback((id: string) => {
-    setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+  const clearNotification = useCallback(async (id: string) => {
+    try {
+      const response = await apiClient.delete(`/notifications/${id}`);
+
+      if (response.success) {
+        setNotifications((prev) => prev.filter((notif) => notif.id !== id));
+      }
+    } catch (error) {
+      console.error('Failed to clear notification:', error);
+    }
   }, []);
 
   // Clear all
-  const clearAll = useCallback(() => {
-    setNotifications([]);
+  const clearAll = useCallback(async () => {
+    try {
+      const response = await apiClient.delete('/notifications/clear-all');
+
+      if (response.success) {
+        setNotifications([]);
+      }
+    } catch (error) {
+      console.error('Failed to clear all notifications:', error);
+    }
+  }, []);
+
+  // Update sound preference
+  const setSoundEnabled = useCallback(async (enabled: boolean) => {
+    try {
+      setSoundEnabledState(enabled);
+
+      await apiClient.patch('/notifications/preferences', { soundEnabled: enabled });
+    } catch (error) {
+      console.error('Failed to update sound preference:', error);
+    }
+  }, []);
+
+  // Update desktop push preference
+  const setDesktopPushEnabled = useCallback(async (enabled: boolean) => {
+    try {
+      // Request permission if enabling
+      if (enabled && 'Notification' in window) {
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.warn('Desktop notification permission denied');
+          return;
+        }
+      }
+
+      setDesktopPushEnabledState(enabled);
+
+      await apiClient.patch('/notifications/preferences', { desktopPushEnabled: enabled });
+    } catch (error) {
+      console.error('Failed to update desktop push preference:', error);
+    }
   }, []);
 
   // Subscribe to WebSocket events
   useEffect(() => {
     if (!connected) return;
 
-    // New report notification
+    // Handle new notification event from server
+    const handleNewNotification = (data: any) => {
+      const newNotification: Notification = {
+        id: data.id,
+        type: data.type,
+        title: data.title,
+        message: data.message,
+        timestamp: new Date(data.timestamp),
+        read: false,
+        data: data.data,
+      };
+
+      setNotifications((prev) => [newNotification, ...prev]);
+      playSound();
+      showDesktopNotification(data.title, data.message);
+
+      // Show toast notification
+      toast({
+        title: data.title,
+        description: data.message,
+        duration: 5000,
+      });
+    };
+
+    // Legacy event handlers for role-based room broadcasts
     const handleNewReport = (data: any) => {
       addNotification({
         type: 'report',
@@ -105,7 +280,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
     };
 
-    // Moderation action
     const handleModerationAction = (data: any) => {
       addNotification({
         type: 'moderation',
@@ -115,10 +289,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
     };
 
-    // User joined/left
     const handleUserJoined = (data: any) => {
       addNotification({
-        type: 'user',
+        type: 'user_joined',
         title: 'User Joined',
         message: `${data.alias} joined the lobby`,
         data,
@@ -127,14 +300,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
     const handleUserLeft = (data: any) => {
       addNotification({
-        type: 'user',
+        type: 'user_left',
         title: 'User Left',
         message: `${data.alias} left the lobby`,
         data,
       });
     };
 
-    // Spam alert
     const handleSpamAlert = (data: any) => {
       addNotification({
         type: 'spam',
@@ -144,7 +316,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
     };
 
-    // Settings changed
     const handleSettingsChanged = (data: any) => {
       addNotification({
         type: 'settings',
@@ -154,9 +325,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       });
     };
 
-    // Audit log entry
     const handleAuditEntry = (data: any) => {
-      // Only show critical audit entries
       if (data.severity === 'critical' || data.severity === 'high') {
         addNotification({
           type: 'audit',
@@ -167,7 +336,10 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       }
     };
 
-    // Subscribe to events
+    // Subscribe to new notification event (persisted notifications)
+    subscribe('notification:new', handleNewNotification);
+
+    // Subscribe to legacy events (for real-time role-based broadcasts)
     subscribe('report:new', handleNewReport);
     subscribe('action:moderation', handleModerationAction);
     subscribe('user:joined', handleUserJoined);
@@ -177,6 +349,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     subscribe('audit:new', handleAuditEntry);
 
     return () => {
+      unsubscribe('notification:new', handleNewNotification);
       unsubscribe('report:new', handleNewReport);
       unsubscribe('action:moderation', handleModerationAction);
       unsubscribe('user:joined', handleUserJoined);
@@ -185,7 +358,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       unsubscribe('settings:changed', handleSettingsChanged);
       unsubscribe('audit:new', handleAuditEntry);
     };
-  }, [connected, subscribe, unsubscribe, addNotification]);
+  }, [connected, subscribe, unsubscribe, addNotification, playSound, showDesktopNotification, toast]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
@@ -194,6 +367,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       value={{
         notifications,
         unreadCount,
+        loading,
         addNotification,
         markAsRead,
         markAllAsRead,
@@ -201,6 +375,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         clearAll,
         soundEnabled,
         setSoundEnabled,
+        desktopPushEnabled,
+        setDesktopPushEnabled,
+        refreshNotifications: loadNotifications,
       }}
     >
       {children}

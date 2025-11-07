@@ -13,6 +13,20 @@
  * - permissions: Permission management
  */
 
+import mongoose from "mongoose";
+
+// Permission cache with 5-minute TTL
+let permissionsCache = {
+  data: {},
+  timestamp: 0,
+  ttl: 5 * 60 * 1000, // 5 minutes
+};
+
+// Get SystemRole model from dashboard-api's mongoose connection
+function getSystemRoleModel() {
+  return mongoose.model("SystemRole");
+}
+
 export const PERMISSIONS = {
   // Dashboard Access
   DASHBOARD_ACCESS: "dashboard.access",
@@ -78,6 +92,11 @@ export const PERMISSIONS = {
  * Default role to permissions mapping
  */
 export const ROLE_PERMISSIONS = {
+  owner: [
+    // Full access - all permissions (owner has everything)
+    ...Object.values(PERMISSIONS),
+  ],
+
   admin: [
     // Full access - all permissions
     ...Object.values(PERMISSIONS),
@@ -126,21 +145,123 @@ export const ROLE_PERMISSIONS = {
     // No dashboard access by default
     // Can be granted custom permissions
   ],
+
+  user: [
+    // Regular users have no dashboard permissions
+  ],
 };
+
+/**
+ * Fetch system role permissions from database (cached)
+ *
+ * @param {string} roleId - Role ID (owner, admin, mod, whitelist, user)
+ * @returns {Promise<Array<string>>} - Array of permission strings
+ */
+export async function getSystemRolePermissions(roleId) {
+  const now = Date.now();
+
+  // Check cache validity
+  if (
+    permissionsCache.data[roleId] &&
+    now - permissionsCache.timestamp < permissionsCache.ttl
+  ) {
+    return permissionsCache.data[roleId];
+  }
+
+  // Fetch from database
+  try {
+    const SystemRoleModel = getSystemRoleModel();
+    const systemRole = await SystemRoleModel.getRoleById(roleId);
+
+    if (systemRole) {
+      // Update cache
+      permissionsCache.data[roleId] = systemRole.permissions;
+      permissionsCache.timestamp = now;
+      return systemRole.permissions;
+    }
+  } catch (error) {
+    console.error(`Error fetching permissions for role ${roleId}:`, error.message);
+  }
+
+  // Fallback to hardcoded permissions
+  return ROLE_PERMISSIONS[roleId] || [];
+}
+
+/**
+ * Fetch system role emoji from database (cached)
+ *
+ * @param {string} roleId - Role ID (owner, admin, mod, whitelist, user)
+ * @returns {Promise<string>} - Emoji string or empty string
+ */
+export async function getSystemRoleEmoji(roleId) {
+  const now = Date.now();
+
+  // Check if we have cached emoji
+  if (
+    permissionsCache.data[roleId] &&
+    now - permissionsCache.timestamp < permissionsCache.ttl &&
+    permissionsCache.data[`${roleId}_emoji`] !== undefined
+  ) {
+    return permissionsCache.data[`${roleId}_emoji`];
+  }
+
+  // Fetch from database
+  try {
+    const SystemRoleModel = getSystemRoleModel();
+    const systemRole = await SystemRoleModel.getRoleById(roleId);
+
+    if (systemRole) {
+      // Update cache
+      permissionsCache.data[`${roleId}_emoji`] = systemRole.emoji || "";
+      permissionsCache.timestamp = now;
+      return systemRole.emoji || "";
+    }
+  } catch (error) {
+    console.error(`Error fetching emoji for role ${roleId}:`, error.message);
+  }
+
+  // Fallback to empty string
+  return "";
+}
+
+/**
+ * Fetch full system role details from database (cached)
+ *
+ * @param {string} roleId - Role ID
+ * @returns {Promise<Object|null>} - System role object or null
+ */
+export async function getSystemRole(roleId) {
+  try {
+    const SystemRoleModel = getSystemRoleModel();
+    return await SystemRoleModel.getRoleById(roleId);
+  } catch (error) {
+    console.error(`Error fetching system role ${roleId}:`, error.message);
+    return null;
+  }
+}
+
+/**
+ * Clear the permissions cache (useful after role updates)
+ */
+export function clearPermissionsCache() {
+  permissionsCache.data = {};
+  permissionsCache.timestamp = 0;
+}
 
 /**
  * Get permissions for a role
  *
  * @param {string} role - User role (admin, mod, whitelist, or null)
  * @param {Array<string>} customPermissions - Optional custom permissions
- * @returns {Array<string>} - Array of permission strings
+ * @returns {Promise<Array<string>>} - Array of permission strings
  */
-export function getPermissionsForRole(role, customPermissions = []) {
+export async function getPermissionsForRole(role, customPermissions = []) {
   if (!role) {
     return customPermissions;
   }
 
-  const rolePerms = ROLE_PERMISSIONS[role] || [];
+  // Fetch role permissions from database (with fallback to hardcoded)
+  const rolePerms = await getSystemRolePermissions(role);
   return [...new Set([...rolePerms, ...customPermissions])];
 }
 

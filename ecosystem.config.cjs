@@ -1,6 +1,6 @@
 /**
  * PM2 Ecosystem Configuration
- * Manages all TG-Lobby-Bot processes
+ * Manages all SecretLounge-Bot processes
  *
  * Usage:
  *   pm2 start ecosystem.config.js
@@ -85,8 +85,8 @@ module.exports = {
       user: "node",
       host: "bot.redde4d.it",
       ref: "origin/main",
-      repo: "git@github.com:yourusername/TG-Lobby-V2.git",
-      path: "/var/www/tg-lobby-bot",
+      repo: "git@github.com:yourusername/SecretLounge-V2.git",
+      path: "/var/www/secretlounge-bot",
       "post-deploy":
         "npm install && cd dashboard-api && npm install && cd ../dashboard && npm install && npm run build && pm2 reload ecosystem.config.js",
       env: {

@@ -1,4 +1,4 @@
-import { getRole, getUserPermissions } from "../../users/index.js";
+import { getRole, getUserPermissions, ensureOwnerRole } from "../../users/index.js";
 import { hasPermission as checkPermission } from "../../../dashboard-api/config/permissions.js";
 
 const OWNER_ID = process.env.ADMIN_ID;
@@ -10,21 +10,21 @@ const OWNER_ID = process.env.ADMIN_ID;
  */
 export function requireRole(requiredRole) {
   return async (ctx, next) => {
+    // Ensure owner has the owner role in database
+    await ensureOwnerRole(ctx.from.id);
+
     // Public command - no role check needed
     if (!requiredRole) {
       return next();
     }
 
-    // Owner-only check
-    if (requiredRole === "owner" || (Array.isArray(requiredRole) && requiredRole.includes("owner"))) {
-      if (String(ctx.from.id) !== String(OWNER_ID)) {
-        return;
-      }
-      return next();
-    }
-
     const userRole = await getRole(ctx.from.id);
     const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+
+    // Owner role has access to everything
+    if (userRole === "owner") {
+      return next();
+    }
 
     // Check if user has required role
     if (!allowedRoles.includes(userRole)) {
@@ -44,21 +44,21 @@ export function requireRole(requiredRole) {
  */
 export function withRole(requiredRole, handler) {
   return async (ctx) => {
+    // Ensure owner has the owner role in database
+    await ensureOwnerRole(ctx.from.id);
+
     // Public command - no role check needed
     if (!requiredRole) {
       return handler(ctx);
     }
 
-    // Owner-only check
-    if (requiredRole === "owner" || (Array.isArray(requiredRole) && requiredRole.includes("owner"))) {
-      if (String(ctx.from.id) !== String(OWNER_ID)) {
-        return;
-      }
-      return handler(ctx);
-    }
-
     const userRole = await getRole(ctx.from.id);
     const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+
+    // Owner role has access to everything
+    if (userRole === "owner") {
+      return handler(ctx);
+    }
 
     // Check if user has required role
     if (!allowedRoles.includes(userRole)) {
@@ -99,10 +99,10 @@ export async function isAdmin(userId) {
 }
 
 /**
- * Check if user is mod or admin
+ * Check if user is mod, admin, or owner
  */
 export async function isMod(userId) {
-  return hasRole(userId, ["mod", "admin"]);
+  return hasRole(userId, ["owner", "admin", "mod"]);
 }
 
 /**
@@ -112,8 +112,12 @@ export async function isMod(userId) {
  * @returns {Promise<boolean>} True if user has the permission
  */
 export async function hasPermission(userId, permission) {
-  // Owner has all permissions
-  if (isOwner(userId)) {
+  // Ensure owner has the owner role in database
+  await ensureOwnerRole(userId);
+
+  // Check if user has owner role (owner has all permissions)
+  const userRole = await getRole(userId);
+  if (userRole === "owner") {
     return true;
   }
 

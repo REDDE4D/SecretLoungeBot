@@ -111,12 +111,14 @@ export async function getRecentLogs(req, res) {
 
     res.json({
       success: true,
-      logs,
-      pagination: {
-        total,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        hasMore: total > parseInt(offset) + logs.length,
+      data: {
+        logs,
+        pagination: {
+          total,
+          limit: parseInt(limit),
+          offset: parseInt(offset),
+          hasMore: total > parseInt(offset) + logs.length,
+        },
       },
     });
   } catch (error) {

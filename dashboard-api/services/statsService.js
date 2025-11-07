@@ -91,16 +91,48 @@ async function getMessageStats(startDate) {
     mediaCount: 0,
   };
 
-  // Count messages in the specified period
-  const periodMessages = await RelayedMessage.countDocuments({
-    relayedAt: { $gte: startDate },
-  });
+  // Count unique messages in the specified period (group by originalUserId + originalMsgId)
+  const periodMessagesResult = await RelayedMessage.aggregate([
+    {
+      $match: {
+        relayedAt: { $gte: startDate },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          userId: "$originalUserId",
+          msgId: "$originalMsgId",
+        },
+      },
+    },
+    {
+      $count: "total",
+    },
+  ]);
+  const periodMessages = periodMessagesResult[0]?.total || 0;
 
-  // Calculate this week's messages (for consistency with API spec)
+  // Calculate this week's unique messages (for consistency with API spec)
   const weekStart = getStartDate(new Date(), "week");
-  const thisWeekMessages = await RelayedMessage.countDocuments({
-    relayedAt: { $gte: weekStart },
-  });
+  const thisWeekMessagesResult = await RelayedMessage.aggregate([
+    {
+      $match: {
+        relayedAt: { $gte: weekStart },
+      },
+    },
+    {
+      $group: {
+        _id: {
+          userId: "$originalUserId",
+          msgId: "$originalMsgId",
+        },
+      },
+    },
+    {
+      $count: "total",
+    },
+  ]);
+  const thisWeekMessages = thisWeekMessagesResult[0]?.total || 0;
 
   return {
     total: totals.total,
@@ -489,12 +521,22 @@ export async function getActivityStats(period = "week") {
   const RelayedMessage = getRelayedMessage();
   const startDate = getStartDate(now, period);
 
-  // Get message volume over time (messages and media per day)
+  // Get message volume over time (unique messages and media per day)
   const messageVolume = await RelayedMessage.aggregate([
     { $match: { relayedAt: { $gte: startDate } } },
     {
       $group: {
-        _id: { $dateToString: { format: "%Y-%m-%d", date: "$relayedAt" } },
+        _id: {
+          date: { $dateToString: { format: "%Y-%m-%d", date: "$relayedAt" } },
+          userId: "$originalUserId",
+          msgId: "$originalMsgId",
+        },
+        type: { $first: "$type" },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id.date",
         messages: { $sum: 1 },
         media: { $sum: { $cond: [{ $ne: ["$type", "text"] }, 1, 0] } },
       },
@@ -523,16 +565,38 @@ export async function getActivityStats(period = "week") {
     return { date: day._id, total: cumulativeUsers, active: day.newUsers };
   });
 
-  // Get activity trends by hour
+  // Get activity trends by hour (unique messages)
   const activityTrends = await RelayedMessage.aggregate([
     { $match: { relayedAt: { $gte: startDate } } },
-    { $group: { _id: { $hour: "$relayedAt" }, messages: { $sum: 1 } } },
+    {
+      $group: {
+        _id: {
+          hour: { $hour: "$relayedAt" },
+          userId: "$originalUserId",
+          msgId: "$originalMsgId",
+        },
+      },
+    },
+    {
+      $group: {
+        _id: "$_id.hour",
+        messages: { $sum: 1 },
+      },
+    },
     { $sort: { _id: 1 } },
     { $project: { _id: 0, hour: "$_id", messages: 1 } },
   ]);
 
-  // Calculate summary
-  const totalMessages = await RelayedMessage.countDocuments();
+  // Calculate summary - use Activity collection for accurate total
+  const totalMessagesResult = await Activity.aggregate([
+    {
+      $group: {
+        _id: null,
+        total: { $sum: "$totalMessages" },
+      },
+    },
+  ]);
+  const totalMessages = totalMessagesResult[0]?.total || 0;
   const daysInPeriod = Math.ceil((now - startDate) / (1000 * 60 * 60 * 24));
   const avgMessagesPerDay = totalMessages / Math.max(daysInPeriod, 1);
   const peakHour = activityTrends.reduce(

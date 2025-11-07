@@ -14,7 +14,8 @@ import { checkExpiredPolls } from "./utils/pollExpiration.js";
 import cron from "node-cron";
 import ScheduledAnnouncement from "./models/ScheduledAnnouncement.js";
 import { sendScheduledAnnouncement } from "./commands/admin/schedule.js";
-import { logError, shutdownLogger } from "./services/dashboardLogger.js";
+import { logError, logInfo, logSystemHealth, shutdownLogger } from "./services/dashboardLogger.js";
+import { createSystemRoles } from "./migrations/createSystemRoles.js";
 
 // Validate required environment variables
 if (!process.env.ADMIN_ID) {
@@ -24,6 +25,9 @@ if (!process.env.ADMIN_ID) {
 }
 
 await connectMongo();
+
+// Run system roles migration
+await createSystemRoles();
 const ADMIN_ID = process.env.ADMIN_ID;
 const ERROR_NOTIFICATION_ID = process.env.ERROR_NOTIFICATION_ID || ADMIN_ID;
 
@@ -270,15 +274,52 @@ bot.launch({
   allowedUpdates: ['message', 'edited_message', 'message_reaction']
 });
 
+logger.info("✅ Bot launched successfully");
+
+// Log startup to dashboard
+const memUsage = process.memoryUsage();
+logInfo("Bot started successfully", {
+  nodeVersion: process.version,
+  platform: process.platform,
+  memory: {
+    rss: `${Math.round(memUsage.rss / 1024 / 1024)}MB`,
+    heapUsed: `${Math.round(memUsage.heapUsed / 1024 / 1024)}MB`,
+    heapTotal: `${Math.round(memUsage.heapTotal / 1024 / 1024)}MB`,
+  },
+  pid: process.pid,
+}, null, "bot_startup");
+
+// Log system health metrics to dashboard
+logSystemHealth({
+  uptime: 0,
+  memory: {
+    rss: memUsage.rss,
+    heapUsed: memUsage.heapUsed,
+    heapTotal: memUsage.heapTotal,
+    external: memUsage.external,
+  },
+  nodeVersion: process.version,
+  platform: process.platform,
+  pid: process.pid,
+});
+
 // Graceful shutdown handlers
 process.once("SIGINT", async () => {
   logger.info("SIGINT received. Shutting down gracefully...");
+  logInfo("Bot shutting down (SIGINT)", {
+    signal: "SIGINT",
+    uptime: Math.round(process.uptime()),
+  }, null, "bot_shutdown");
   await shutdownLogger();
   bot.stop("SIGINT");
 });
 
 process.once("SIGTERM", async () => {
   logger.info("SIGTERM received. Shutting down gracefully...");
+  logInfo("Bot shutting down (SIGTERM)", {
+    signal: "SIGTERM",
+    uptime: Math.round(process.uptime()),
+  }, null, "bot_shutdown");
   await shutdownLogger();
   bot.stop("SIGTERM");
 });

@@ -115,7 +115,7 @@ export function createApp() {
   app.get("/", (req, res) => {
     res.json({
       success: true,
-      message: "TG-Lobby-Bot Dashboard API",
+      message: "SecretLounge-Bot Dashboard API",
       version: "2.1.0",
       phase: "Phase 8 - Testing & Optimization",
       features: ["REST API", "WebSocket Real-time Events", "JWT Authentication", "RBAC"],
