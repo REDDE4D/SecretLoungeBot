@@ -539,6 +539,13 @@ View users who blocked the bot.
 
 ### System
 
+#### `/restart` or `/reload`
+Restart the bot process (Owner only).
+- **Aliases**: `/reload`
+- **Usage**: `/restart` or `/reload`
+- **Access**: Owner only (ADMIN_ID)
+- **Description**: Gracefully restarts the bot using PM2. Sends confirmation message before restarting. Falls back to process exit if PM2 reload fails. Hidden from help menu.
+
 #### `/botstats`
 View bot performance metrics.
 - **Usage**: `/botstats`

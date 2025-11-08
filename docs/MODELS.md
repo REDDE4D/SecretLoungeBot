@@ -22,6 +22,7 @@ Complete reference for all MongoDB database schemas and models.
   - [Setting](#setting)
   - [Preferences](#preferences)
   - [CustomRole](#customrole)
+  - [SystemRole](#systemrole)
 - [Access Control Models](#access-control-models)
   - [Invite](#invite)
   - [LinkWhitelist](#linkwhitelist)
@@ -576,6 +577,60 @@ Complete reference for all MongoDB database schemas and models.
 - Users can have multiple custom roles
 - Replaces deprecated `/promote` and `/demote` commands
 - Priority determines display order in user lists
+
+---
+
+### SystemRole
+
+**File**: `src/models/SystemRole.js`
+
+**Purpose**: Database-backed configuration for system roles (owner, admin, mod, whitelist, user) with customizable properties.
+
+**Schema**:
+
+```javascript
+{
+  roleId: String,           // Role identifier (unique, required)
+                           // Enum: "owner", "admin", "mod", "whitelist", "user"
+  name: String,            // Display name (2-32 chars, required)
+  description: String,     // Role description (max 500 chars)
+  emoji: String,           // Role emoji/badge displayed in messages
+  color: String,           // UI color (red, blue, green, amber, purple, pink, gray)
+  permissions: [String],   // Array of permission strings
+  isSystemRole: Boolean,   // Always true (immutable)
+  isEditable: Boolean,     // Can be edited via dashboard (false for owner)
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+**Indexes**:
+- `roleId`: Unique index for fast lookup
+
+**Static Methods**:
+- `getRoleById(roleId)`: Get role by ID
+- `getAllSystemRoles()`: Get all system roles
+- `updateSystemRole(roleId, updates)`: Update role (owner protected)
+
+**Instance Methods**:
+- `canEdit()`: Check if role can be edited
+- `validatePermissions()`: Validate permission strings
+
+**Role Hierarchy**:
+1. **Owner** (ADMIN_ID) - Full access, cannot be modified
+2. **Admin** - Full moderation and configuration access
+3. **Mod** - Limited moderation access (reports, temporary actions)
+4. **Whitelist** - Exemptions from spam/slowmode/filters
+5. **User** - Default role for all registered users
+
+**Notes**:
+- Created via database migration on startup
+- Owner role protected from all modifications
+- Role emojis displayed as badges in message headers
+- Permissions cached for 5 minutes to reduce database load
+- Dashboard allows editing emoji, color, permissions, and description
+- Fallback to hardcoded defaults if database unavailable
+- Integrated with RBAC permission system in dashboard-api
 
 ---
 
