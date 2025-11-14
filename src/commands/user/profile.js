@@ -6,6 +6,7 @@ import { renderIconHTML } from "../../utils/sanitize.js";
 import { isMod, isAdmin } from "../utils/permissions.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import { formatTimeAgo, formatTimeRemaining } from "../../utils/timeFormat.js";
+import { getUserAchievements, getAchievementStats } from "../../services/achievementService.js";
 
 export const meta = {
   commands: ["profile"],
@@ -99,10 +100,26 @@ export function register(bot) {
         message += `\n🏆 <b>Leaderboard rank:</b> #${rank}\n`;
       }
 
-      // Achievements/Milestones
-      const badges = generateBadges(activity, user);
-      if (badges.length > 0) {
-        message += `\n🎖️ <b>Achievements:</b>\n${badges.join("\n")}\n`;
+      // Achievements
+      const achievements = await getUserAchievements(targetUserId);
+      const achievementStats = await getAchievementStats(targetUserId);
+
+      if (achievements.length > 0) {
+        message += `\n🎖️ <b>Achievements (${achievementStats.earned}/${achievementStats.total}):</b>\n`;
+
+        // Show latest 5 achievements
+        const latestAchievements = achievements.slice(0, 5);
+        for (const achievement of latestAchievements) {
+          message += `${achievement.icon} ${achievement.name}\n`;
+        }
+
+        if (achievements.length > 5) {
+          message += `<i>... and ${achievements.length - 5} more</i>\n`;
+        }
+
+        message += `\n💯 <b>Achievement Points:</b> ${achievementStats.points}\n`;
+      } else {
+        message += `\n🎖️ <b>Achievements:</b> None yet - send messages to unlock achievements!\n`;
       }
 
       // Moderation info (only visible to mods/admins or viewing own profile)
@@ -168,44 +185,4 @@ async function calculateRank(userId) {
   }
 }
 
-/**
- * Generate achievement badges based on activity and user data
- */
-function generateBadges(activity, user) {
-  const badges = [];
-
-  if (!activity) return badges;
-
-  const totalMessages = activity.totalMessages || 0;
-  const daysInLobby = activity.firstSeen
-    ? Math.floor((Date.now() - activity.firstSeen.getTime()) / (1000 * 60 * 60 * 24))
-    : 0;
-
-  // Message milestones
-  if (totalMessages >= 1000) badges.push("💎 1000+ Messages");
-  else if (totalMessages >= 500) badges.push("🥇 500+ Messages");
-  else if (totalMessages >= 100) badges.push("🥈 100+ Messages");
-  else if (totalMessages >= 10) badges.push("🥉 10+ Messages");
-
-  // Tenure milestones
-  if (daysInLobby >= 365) badges.push("🎂 1 Year Member");
-  else if (daysInLobby >= 180) badges.push("📅 6 Month Member");
-  else if (daysInLobby >= 90) badges.push("📅 3 Month Member");
-  else if (daysInLobby >= 30) badges.push("📅 1 Month Member");
-  else if (daysInLobby >= 7) badges.push("🆕 1 Week Member");
-
-  // Role badges
-  if (user.role === "admin") badges.push("👑 Admin");
-  else if (user.role === "mod") badges.push("🛡️ Moderator");
-  else if (user.role === "whitelist") badges.push("⭐ Whitelisted");
-
-  // Special badges
-  const mediaMessages = activity.totalMediaMessages || 0;
-  if (mediaMessages >= 100) badges.push("📸 Media Enthusiast");
-
-  const textMessages = activity.totalTextMessages || 0;
-  if (textMessages >= 100) badges.push("✍️ Conversationalist");
-
-  return badges;
-}
 

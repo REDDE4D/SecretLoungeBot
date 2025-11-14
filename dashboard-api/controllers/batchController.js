@@ -4,6 +4,7 @@ import { User } from "../../src/models/User.js";
 import AuditLog from "../../src/models/AuditLog.js";
 import { parseDuration } from "../utils/duration.js";
 import { emitModerationAction } from "../services/socketService.js";
+import { notifyRoleChange } from "../../src/utils/roleNotifications.js";
 
 /**
  * Batch ban users
@@ -400,6 +401,12 @@ export async function batchAssignRole(req, res) {
       });
     }
 
+    // Get users' old roles before updating
+    const usersBeforeUpdate = await User.find(
+      { _id: { $in: userIds } },
+      { _id: 1, role: 1 }
+    ).lean();
+
     // Update all users
     const result = await User.updateMany(
       { _id: { $in: userIds } },
@@ -417,6 +424,17 @@ export async function batchAssignRole(req, res) {
         role,
       },
     });
+
+    // Notify each affected user
+    for (const user of usersBeforeUpdate) {
+      // Only notify if role actually changed
+      if (user.role !== role) {
+        await notifyRoleChange(user._id.toString(), {
+          oldRole: user.role,
+          newRole: role,
+        });
+      }
+    }
 
     // Emit WebSocket event
     emitModerationAction({

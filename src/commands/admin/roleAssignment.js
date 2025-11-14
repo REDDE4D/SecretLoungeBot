@@ -5,6 +5,7 @@ import { escapeHTML, escapeMarkdownV2 } from '../../../utils/sanitize.js';
 import { resolveTargetUser } from '../../utils/resolvers.js';
 import { paginate, buildPaginationKeyboard, getPaginationFooter } from '../../../utils/pagination.js';
 import logger from '../../../utils/logger.js';
+import { notifyRoleChange } from '../../../utils/roleNotifications.js';
 
 export const meta = {
   commands: ['setrole', 'removerole', 'clearroles', 'whohas'],
@@ -61,6 +62,12 @@ async function assignRole(ctx) {
         newRole: role.roleId,
       });
 
+      // Notify user about role change
+      await notifyRoleChange(userId, {
+        oldRole,
+        newRole: role.roleId,
+      });
+
       return ctx.reply(escapeMarkdownV2(result), { parse_mode: 'MarkdownV2' });
     } else {
       // Custom roles are additive
@@ -69,6 +76,17 @@ async function assignRole(ctx) {
       logger.logModeration('setrole_custom', ctx.from.id, userId, {
         roleId: role.roleId,
         roleName: role.name,
+      });
+
+      // Notify user about custom role assignment
+      await notifyRoleChange(userId, {
+        customRole: {
+          roleId: role.roleId,
+          name: role.name,
+          description: role.description,
+          permissions: role.permissions,
+          icon: role.icon,
+        },
       });
 
       const alias = await getAlias(userId);
@@ -155,6 +173,13 @@ async function removeRole(ctx) {
         removedRole: role.roleId,
       });
 
+      // Notify user about role removal
+      await notifyRoleChange(userId, {
+        oldRole: role.roleId,
+        newRole: null,
+        isRemoval: true,
+      });
+
       return ctx.reply(escapeMarkdownV2(result), { parse_mode: 'MarkdownV2' });
     } else {
       // Custom role - remove from array
@@ -163,6 +188,17 @@ async function removeRole(ctx) {
       logger.logModeration('removerole_custom', ctx.from.id, userId, {
         roleId: role.roleId,
         roleName: role.name,
+      });
+
+      // Notify user about custom role removal
+      await notifyRoleChange(userId, {
+        customRole: {
+          roleId: role.roleId,
+          name: role.name,
+          description: role.description,
+          icon: role.icon,
+        },
+        isRemoval: true,
       });
 
       const message = `✅ Removed <b>${role.icon || '👥'} ${escapeHTML(role.name)}</b> from ${escapeHTML(alias)}`;
@@ -363,12 +399,30 @@ export function register(bot) {
         logger.logModeration('removerole_system', ctx.from.id, userId, {
           removedRole: roleId,
         });
+
+        // Notify user about role removal
+        await notifyRoleChange(userId, {
+          oldRole: roleId,
+          newRole: null,
+          isRemoval: true,
+        });
       } else {
         await roleService.removeRoleFromUser(userId, roleId);
 
         logger.logModeration('removerole_custom', ctx.from.id, userId, {
           roleId,
           roleName: role.name,
+        });
+
+        // Notify user about custom role removal
+        await notifyRoleChange(userId, {
+          customRole: {
+            roleId: role.roleId,
+            name: role.name,
+            description: role.description,
+            icon: role.icon,
+          },
+          isRemoval: true,
         });
       }
 
@@ -403,6 +457,11 @@ export function register(bot) {
       await roleService.clearUserRoles(userId, false); // includeAdmin=false
 
       logger.logModeration('clearroles', ctx.from.id, userId);
+
+      // Notify user about roles being cleared
+      await notifyRoleChange(userId, {
+        isClear: true,
+      });
 
       const message = `✅ <b>Cleared all roles from ${escapeHTML(alias)}</b>`;
 

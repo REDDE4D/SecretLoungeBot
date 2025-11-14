@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import bot from "../../src/core/bot.js";
 import { escapeHTML } from "../../src/utils/sanitize.js";
 import * as roleService from "../../src/services/roleService.js";
+import { notifyRoleChange } from "../../src/utils/roleNotifications.js";
 
 // Helper to get models at runtime
 const getUser = () => mongoose.model("User");
@@ -203,6 +204,12 @@ export async function updateUserRole(userId, role, moderatorId) {
     targetAlias: user.alias,
     reason: `Role changed from ${oldRole || "none"} to ${role || "none"}`,
     details: { oldRole, newRole: role },
+  });
+
+  // Notify user about role change
+  await notifyRoleChange(userId, {
+    oldRole,
+    newRole: role,
   });
 
   return {
@@ -600,6 +607,19 @@ export async function assignCustomRole(userId, roleId, moderatorId) {
     details: { roleId, roleName: role?.name },
   });
 
+  // Notify user about custom role assignment
+  if (role) {
+    await notifyRoleChange(userId, {
+      customRole: {
+        roleId: role.roleId,
+        name: role.name,
+        description: role.description,
+        permissions: role.permissions,
+        icon: role.icon,
+      },
+    });
+  }
+
   return {
     userId,
     alias: user.alias,
@@ -642,6 +662,19 @@ export async function removeCustomRole(userId, roleId, moderatorId) {
     reason: `Custom role "${role?.name || roleId}" removed`,
     details: { roleId, roleName: role?.name },
   });
+
+  // Notify user about custom role removal
+  if (role) {
+    await notifyRoleChange(userId, {
+      customRole: {
+        roleId: role.roleId,
+        name: role.name,
+        description: role.description,
+        icon: role.icon,
+      },
+      isRemoval: true,
+    });
+  }
 
   return {
     userId,

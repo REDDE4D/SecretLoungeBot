@@ -1,8 +1,9 @@
 // src/relay/editRelay.js
 import RelayedMessage from "../models/RelayedMessage.js";
-import { getAlias, getIcon } from "../users/index.js";
+import { getAlias, getIcon, getRole } from "../users/index.js";
 import { escapeHTML, renderIconHTML } from "../utils/sanitize.js";
 import { handleTelegramError } from "../utils/telegramErrorHandler.js";
+import { getSystemRoleEmoji } from "../../dashboard-api/config/permissions.js";
 
 /**
  * Handle message edits by updating all relayed copies
@@ -37,8 +38,20 @@ export async function handleEditRelay(ctx) {
     const alias = await getAlias(editorId);
     const icon = await getIcon(editorId);
 
-    // Build updated message format
-    const header = `${renderIconHTML(icon)} <b>${escapeHTML(alias)}</b>`;
+    // Get editor's role and role emoji badge
+    const editorRole = await getRole(editorId);
+    let roleBadge = "";
+
+    // Only show badges for privileged roles (admin, mod, whitelist)
+    if (editorRole && ["admin", "mod", "whitelist"].includes(editorRole)) {
+      const roleEmoji = await getSystemRoleEmoji(editorRole);
+      if (roleEmoji) {
+        roleBadge = ` ${roleEmoji}`;
+      }
+    }
+
+    // Build updated message format with role badge
+    const header = `${renderIconHTML(icon)} <b>${escapeHTML(alias)}</b>${roleBadge}`;
     const editIndicator = `<i>(edited)</i>`;
     const newCaption = `${header} ${editIndicator}\n\n${escapeHTML(newText)}`;
 

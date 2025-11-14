@@ -85,13 +85,26 @@ export function register(botInstance) {
       console.log("[delete] Target user:", { targetUserId, targetAlias });
 
       // Delete all relayed copies with detailed error tracking
+      // Note: We skip the sender's original message (where userId === originalUserId)
+      // because the bot may not have permission to delete user-sent media messages
       let deletedCount = 0;
       let blockedCount = 0;
       let notFoundCount = 0;
       let otherErrorCount = 0;
+      let skippedOriginal = false;
+
       for (const copy of relayedCopies) {
         try {
           const chatId = copy.userId || copy.chatId;
+
+          // Skip sender's original message - only delete relayed copies
+          if (String(copy.userId) === String(targetUserId) &&
+              copy.messageId === copy.originalItemMsgId) {
+            console.log(`[delete] Skipping sender's original message ${copy.messageId}`);
+            skippedOriginal = true;
+            continue;
+          }
+
           if (chatId) {
             console.log(`[delete] Attempting to delete message ${copy.messageId} from chat ${chatId}`);
             await ctx.telegram.deleteMessage(chatId, copy.messageId);

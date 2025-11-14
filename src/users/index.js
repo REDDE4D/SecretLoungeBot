@@ -1,4 +1,5 @@
 import { User } from "../models/User.js";
+import { Warning } from "../models/Warning.js";
 import bot from "../core/bot.js";
 import { ROLE_PERMISSIONS } from "../../dashboard-api/config/permissions.js";
 import * as roleService from "../services/roleService.js";
@@ -217,7 +218,17 @@ export async function isBanned(id) {
   return u?.bannedUntil && new Date() < u.bannedUntil;
 }
 
-export async function addWarning(id) {
+export async function addWarning(id, issuedBy = null, issuedByAlias = "System", reason = null) {
+  // Create detailed warning record
+  await Warning.create({
+    userId: id,
+    issuedBy: issuedBy || "system",
+    issuedByAlias,
+    reason,
+    timestamp: new Date(),
+  });
+
+  // Update warning count in User model
   const u = await User.findById(id);
   const count = (u?.warnings || 0) + 1;
   await User.updateOne({ _id: id }, { warnings: count });
@@ -225,7 +236,31 @@ export async function addWarning(id) {
 }
 
 export async function clearWarnings(id) {
+  // Remove all warning records
+  await Warning.deleteMany({ userId: id });
+  // Reset warning count in User model
   await User.updateOne({ _id: id }, { warnings: 0 });
+}
+
+export async function getWarnings(id) {
+  const warnings = await Warning.find({ userId: id }).sort({ timestamp: -1 });
+  return warnings;
+}
+
+export async function removeWarning(warningId) {
+  const warning = await Warning.findById(warningId);
+  if (!warning) {
+    throw new Error("Warning not found");
+  }
+
+  const userId = warning.userId;
+  await Warning.deleteOne({ _id: warningId });
+
+  // Update warning count in User model
+  const remainingCount = await Warning.countDocuments({ userId });
+  await User.updateOne({ _id: userId }, { warnings: remainingCount });
+
+  return { userId, remainingCount };
 }
 
 export async function kickUser(id) {

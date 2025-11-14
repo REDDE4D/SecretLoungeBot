@@ -68,4 +68,48 @@ router.get(
   moderationController.getAuditLogs
 );
 
+/**
+ * @route   GET /api/moderation/warnings/:userId
+ * @desc    Get all warnings for a specific user
+ * @access  Private (requires users.warn permission)
+ */
+router.get(
+  "/warnings/:userId",
+  requirePermissions(["users.warn"]),
+  moderationController.getUserWarnings
+);
+
+/**
+ * @route   DELETE /api/moderation/warnings/:warningId
+ * @desc    Remove a specific warning
+ * @access  Private (requires users.warn permission)
+ */
+router.delete(
+  "/warnings/:warningId",
+  requirePermissions(["users.warn"]),
+  moderationController.removeWarning
+);
+
+/**
+ * @route   DELETE /api/moderation/warnings/user/:userId
+ * @desc    Clear all warnings for a specific user
+ * @access  Private (requires users.warn permission)
+ */
+router.delete(
+  "/warnings/user/:userId",
+  requirePermissions(["users.warn"]),
+  moderationController.clearUserWarnings
+);
+
+/**
+ * @route   GET /api/moderation/warnings
+ * @desc    Get all warnings across all users
+ * @access  Private (requires users.warn permission)
+ */
+router.get(
+  "/warnings",
+  requirePermissions(["users.warn"]),
+  moderationController.getAllWarnings
+);
+
 export default router;

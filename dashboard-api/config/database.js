@@ -50,6 +50,7 @@ export async function connectDatabase() {
       { path: "../../src/models/CustomRole.js", name: "CustomRole" },
       { path: "../../src/models/SystemRole.js", name: "SystemRole" },
       { path: "../../src/models/LinkWhitelist.js", name: "LinkWhitelist" },
+      { path: "../../src/models/Warning.js", name: "Warning" },
       { path: "../models/Session.js", name: "Session" },
       { path: "../models/LoginAttempt.js", name: "LoginAttempt" },
       { path: "../models/LoginToken.js", name: "LoginToken" },

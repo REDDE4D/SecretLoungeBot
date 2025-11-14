@@ -22,9 +22,22 @@ let permissionsCache = {
   ttl: 5 * 60 * 1000, // 5 minutes
 };
 
-// Get SystemRole model from dashboard-api's mongoose connection
-function getSystemRoleModel() {
-  return mongoose.model("SystemRole");
+// Get SystemRole model - works with both bot and dashboard-api mongoose instances
+async function getSystemRoleModel() {
+  try {
+    // Try to get the model from the current mongoose instance
+    return mongoose.model("SystemRole");
+  } catch (error) {
+    // If model is not registered with this mongoose instance,
+    // import it directly from the model file
+    try {
+      const { default: SystemRole } = await import("../../src/models/SystemRole.js");
+      return SystemRole;
+    } catch (importError) {
+      console.error("Failed to get SystemRole model:", importError.message);
+      throw new Error("SystemRole model not available");
+    }
+  }
 }
 
 export const PERMISSIONS = {
@@ -73,6 +86,7 @@ export const PERMISSIONS = {
   MODERATION_RESOLVE_REPORTS: "moderation.resolve_reports",
   MODERATION_VIEW_AUDIT: "moderation.view_audit",
   MODERATION_EXPORT_AUDIT: "moderation.export_audit",
+  MODERATION_MANAGE_WARNINGS: "moderation.manage_warnings",
 
   // Logs Permissions
   LOGS_VIEW_BOT: "logs.view_bot",
@@ -124,6 +138,7 @@ export const ROLE_PERMISSIONS = {
     PERMISSIONS.MODERATION_VIEW_REPORTS,
     PERMISSIONS.MODERATION_RESOLVE_REPORTS,
     PERMISSIONS.MODERATION_VIEW_AUDIT,
+    PERMISSIONS.MODERATION_MANAGE_WARNINGS,
 
     // Content viewing (no management)
     PERMISSIONS.CONTENT_VIEW_FILTERS,
@@ -170,7 +185,7 @@ export async function getSystemRolePermissions(roleId) {
 
   // Fetch from database
   try {
-    const SystemRoleModel = getSystemRoleModel();
+    const SystemRoleModel = await getSystemRoleModel();
     const systemRole = await SystemRoleModel.getRoleById(roleId);
 
     if (systemRole) {
@@ -207,7 +222,7 @@ export async function getSystemRoleEmoji(roleId) {
 
   // Fetch from database
   try {
-    const SystemRoleModel = getSystemRoleModel();
+    const SystemRoleModel = await getSystemRoleModel();
     const systemRole = await SystemRoleModel.getRoleById(roleId);
 
     if (systemRole) {
@@ -232,7 +247,7 @@ export async function getSystemRoleEmoji(roleId) {
  */
 export async function getSystemRole(roleId) {
   try {
-    const SystemRoleModel = getSystemRoleModel();
+    const SystemRoleModel = await getSystemRoleModel();
     return await SystemRoleModel.getRoleById(roleId);
   } catch (error) {
     console.error(`Error fetching system role ${roleId}:`, error.message);

@@ -10,6 +10,7 @@ import { formatDuration } from "../utils/timeFormat.js";
 import RelayedMessage from "../models/RelayedMessage.js";
 import MessageReaction from "../models/MessageReaction.js";
 import { checkMessageForBlockedLinks, formatBlockedLinkMessage } from "../utils/linkDetection.js";
+import { checkAchievements } from "../services/achievementService.js";
 
 // Track last message time for slowmode
 const lastMessageTime = new Map(); // userId -> timestamp
@@ -388,5 +389,10 @@ export default function registerHandlers(bot) {
     await spamHandler.trackMessage(String(userId), textToCheck);
 
     await relayMessage(ctx); // continue
+
+    // Check for new achievements (fire-and-forget, non-blocking)
+    checkAchievements(String(userId)).catch(err =>
+      console.error("Achievement check error:", err.message)
+    );
   });
 }

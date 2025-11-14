@@ -16,6 +16,9 @@ import ScheduledAnnouncement from "./models/ScheduledAnnouncement.js";
 import { sendScheduledAnnouncement } from "./commands/admin/schedule.js";
 import { logError, logInfo, logSystemHealth, shutdownLogger } from "./services/dashboardLogger.js";
 import { createSystemRoles } from "./migrations/createSystemRoles.js";
+import { Achievement } from "./models/Achievement.js";
+import { UserAchievement } from "./models/UserAchievement.js";
+import { initializeAchievements } from "./services/achievementService.js";
 
 // Validate required environment variables
 if (!process.env.ADMIN_ID) {
@@ -28,6 +31,10 @@ await connectMongo();
 
 // Run system roles migration
 await createSystemRoles();
+
+// Initialize achievements
+await initializeAchievements();
+
 const ADMIN_ID = process.env.ADMIN_ID;
 const ERROR_NOTIFICATION_ID = process.env.ERROR_NOTIFICATION_ID || ADMIN_ID;
 

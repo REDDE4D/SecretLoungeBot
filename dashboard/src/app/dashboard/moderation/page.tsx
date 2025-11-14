@@ -32,8 +32,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 import { useSocket } from '@/contexts/SocketContext';
-import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { AlertCircle, CheckCircle, XCircle, AlertTriangle, Trash2 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 interface Report {
   _id: string;
@@ -54,27 +55,63 @@ interface ReportListResponse {
   total: number;
 }
 
+interface Warning {
+  id: string;
+  userId: string;
+  userAlias: string;
+  issuedBy: string;
+  issuedByAlias: string;
+  reason: string | null;
+  timestamp: string;
+}
+
+interface WarningsListResponse {
+  warnings: Warning[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export default function ModerationPage() {
   const [reports, setReports] = useState<Report[]>([]);
+  const [warnings, setWarnings] = useState<Warning[]>([]);
   const [loading, setLoading] = useState(true);
+  const [warningsLoading, setWarningsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('pending');
   const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [resolveDialog, setResolveDialog] = useState(false);
   const [resolutionAction, setResolutionAction] = useState<string>('none');
   const [resolutionNotes, setResolutionNotes] = useState<string>('');
+  const [activeTab, setActiveTab] = useState('reports');
+  const [deleteWarningId, setDeleteWarningId] = useState<string | null>(null);
+  const [warningsPagination, setWarningsPagination] = useState({
+    page: 1,
+    limit: 50,
+    total: 0,
+    totalPages: 0,
+  });
   const { toast } = useToast();
   const { subscribe, unsubscribe } = useSocket();
 
   useEffect(() => {
-    fetchReports();
+    if (activeTab === 'reports') {
+      fetchReports();
+    } else if (activeTab === 'warnings') {
+      fetchWarnings();
+    }
+  }, [statusFilter, activeTab, warningsPagination.page]);
 
+  useEffect(() => {
     // Subscribe to real-time report updates
     const handleNewReport = (data: any) => {
       toast({
         title: 'New Report',
         description: `New report from ${data.reportedAlias}`,
       });
-      if (statusFilter === 'pending') {
+      if (statusFilter === 'pending' && activeTab === 'reports') {
         fetchReports();
       }
     };
@@ -84,7 +121,7 @@ export default function ModerationPage() {
     return () => {
       unsubscribe('report:new', handleNewReport);
     };
-  }, [statusFilter, subscribe, unsubscribe]);
+  }, [statusFilter, activeTab, subscribe, unsubscribe]);
 
   const fetchReports = async () => {
     try {
@@ -145,6 +182,53 @@ export default function ModerationPage() {
     setResolveDialog(true);
   };
 
+  const fetchWarnings = async () => {
+    try {
+      setWarningsLoading(true);
+      const params = new URLSearchParams({
+        page: warningsPagination.page.toString(),
+        limit: warningsPagination.limit.toString(),
+      });
+
+      const response = await apiClient.get<WarningsListResponse>(`/moderation/warnings?${params.toString()}`);
+      if (response.success && response.data) {
+        setWarnings(response.data.warnings);
+        setWarningsPagination(response.data.pagination);
+      }
+    } catch (error) {
+      console.error('Failed to fetch warnings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch warnings',
+        variant: 'destructive',
+      });
+    } finally {
+      setWarningsLoading(false);
+    }
+  };
+
+  const handleRemoveWarning = async (warningId: string) => {
+    try {
+      const response = await apiClient.delete(`/moderation/warnings/${warningId}`);
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Warning removed successfully',
+        });
+        fetchWarnings();
+      }
+    } catch (error) {
+      console.error('Failed to remove warning:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to remove warning',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteWarningId(null);
+    }
+  };
+
   const getStatusBadge = (status: string) => {
     const colors: Record<string, { variant: any; icon: any }> = {
       pending: { variant: 'default', icon: AlertCircle },
@@ -179,11 +263,18 @@ export default function ModerationPage() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Moderation Center</h2>
         <p className="text-muted-foreground">
-          Review and resolve user reports
+          Review and resolve user reports and manage warnings
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="warnings">Warnings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="reports" className="space-y-4 mt-4">
+          <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">Pending Reports</CardTitle>
@@ -297,6 +388,115 @@ export default function ModerationPage() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+
+        <TabsContent value="warnings" className="space-y-4 mt-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>All Warnings</CardTitle>
+              <CardDescription>View and manage user warnings across the lobby</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {warningsLoading ? (
+                <div className="text-center py-8">Loading warnings...</div>
+              ) : warnings.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <AlertTriangle className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p>No warnings found</p>
+                </div>
+              ) : (
+                <>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>User</TableHead>
+                        <TableHead>Issued By</TableHead>
+                        <TableHead>Reason</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {warnings.map((warning) => (
+                        <TableRow key={warning.id}>
+                          <TableCell className="font-medium">{warning.userAlias}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{warning.issuedByAlias}</Badge>
+                          </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {warning.reason || (
+                              <span className="text-muted-foreground italic">No reason provided</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {formatDate(warning.timestamp)}
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setDeleteWarningId(warning.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+
+                  <div className="flex items-center justify-between mt-4">
+                    <p className="text-sm text-muted-foreground">
+                      Page {warningsPagination.page} of {warningsPagination.totalPages} ({warningsPagination.total} total warnings)
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setWarningsPagination((p) => ({ ...p, page: p.page - 1 }))}
+                        disabled={warningsPagination.page === 1}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setWarningsPagination((p) => ({ ...p, page: p.page + 1 }))}
+                        disabled={warningsPagination.page === warningsPagination.totalPages}
+                      >
+                        Next
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Delete Warning Confirmation Dialog */}
+      <Dialog open={!!deleteWarningId} onOpenChange={(open) => !open && setDeleteWarningId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Warning</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove this warning? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteWarningId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteWarningId && handleRemoveWarning(deleteWarningId)}
+            >
+              Remove
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Resolve Report Dialog */}
       <Dialog open={resolveDialog} onOpenChange={setResolveDialog}>

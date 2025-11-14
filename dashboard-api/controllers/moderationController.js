@@ -105,3 +105,68 @@ export const getAuditLogs = asyncHandler(async (req, res) => {
     data: result,
   });
 });
+
+/**
+ * GET /api/moderation/warnings/:userId
+ * Get all warnings for a specific user
+ */
+export const getUserWarnings = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  const warnings = await moderationService.getUserWarnings(userId);
+
+  res.json({
+    success: true,
+    data: warnings,
+  });
+});
+
+/**
+ * DELETE /api/moderation/warnings/:warningId
+ * Remove a specific warning
+ */
+export const removeWarning = asyncHandler(async (req, res) => {
+  const { warningId } = req.params;
+
+  const result = await moderationService.removeWarning(warningId, req.user.id);
+
+  res.json({
+    success: true,
+    message: "Warning removed successfully",
+    data: result,
+  });
+});
+
+/**
+ * DELETE /api/moderation/warnings/user/:userId
+ * Clear all warnings for a specific user
+ */
+export const clearUserWarnings = asyncHandler(async (req, res) => {
+  const { userId } = req.params;
+
+  await moderationService.clearUserWarnings(userId, req.user.id);
+
+  res.json({
+    success: true,
+    message: "All warnings cleared for user",
+  });
+});
+
+/**
+ * GET /api/moderation/warnings
+ * Get all warnings across all users
+ */
+export const getAllWarnings = asyncHandler(async (req, res) => {
+  const options = {
+    page: parseInt(req.query.page) || 1,
+    limit: parseInt(req.query.limit) || 50,
+    userId: req.query.userId || null,
+  };
+
+  const result = await moderationService.getAllWarnings(options);
+
+  res.json({
+    success: true,
+    data: result,
+  });
+});

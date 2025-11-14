@@ -7,6 +7,138 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2025-01-14
+
+### Added
+
+- **Comprehensive Achievements System**
+  - New `Achievement` model defining 30+ achievements across 6 categories (messaging, social, tenure, milestone, special, role)
+  - New `UserAchievement` model tracking unlocked achievements per user
+  - Achievement tiers: bronze, silver, gold, platinum, diamond with point values
+  - Achievement categories: messaging, social, tenure, milestone, special, role-based
+  - Secret achievements that are hidden until unlocked
+  - Automatic achievement checking after user actions (message sent, role change, etc.)
+  - Achievement notification system with emoji icons and descriptions
+  - `achievementService.js` with initialization, awarding, checking, and querying functions
+  - 30+ predefined achievements including:
+    - Message milestones (1, 10, 100, 500, 1000, 5000 messages)
+    - Reply achievements (10, 100, 500 replies)
+    - Media achievements (100, 500 media messages)
+    - Text achievements (100, 500 text messages)
+    - Tenure achievements (1 day, 1 week, 1 month, 3 months, 6 months, 1 year)
+    - Leaderboard achievements (top 10, top 3, #1)
+    - Special achievements (night owl, early riser, activity streaks)
+    - Role achievements (moderator, administrator)
+  - Achievement points system for gamification
+  - Achievement progress tracking and statistics
+  - Automatic initialization of default achievements on startup
+
+- **Enhanced Warnings System**
+  - New `Warning` model for granular warning tracking with individual records
+  - Each warning now includes: issuer ID, issuer alias, reason, timestamp
+  - Warnings stored as separate documents instead of just a counter
+  - Database indexes for efficient warning queries by user and timestamp
+  - Compound index for user + timestamp for fast sorting
+  - `/moderation/warnings/:userId` API endpoint to fetch user warnings
+  - `/moderation/warnings/:warningId` DELETE endpoint to remove individual warnings
+  - `/moderation/warnings/user/:userId` DELETE endpoint to clear all user warnings
+  - New `WarningsDialog` component in dashboard for viewing/managing warnings
+  - Warning display in dashboard users table
+  - Detailed warning history with moderator alias and reason
+  - Individual warning removal with confirmation dialog
+  - Clear all warnings with confirmation dialog
+  - Warning count badge in user management interface
+
+- **Role Change Notifications**
+  - New `roleNotifications.js` utility for user-facing role notifications
+  - Automatic Telegram notifications when users receive roles
+  - Automatic Telegram notifications when users lose roles
+  - Support for system role changes (owner, admin, mod, whitelist)
+  - Support for custom role assignments and removals
+  - Detailed notifications including role icons, descriptions, and permissions
+  - Permission list display for custom role assignments
+  - Graceful handling of blocked users (no error thrown)
+  - Notification formatting with HTML parsing
+  - Role emoji icons in notifications (👑 owner, ⭐ admin, 🛡️ mod, ✅ whitelist)
+
+- **Dashboard Warning Management**
+  - Warnings dialog component with table view of all warnings
+  - Warning details: date, issuer, reason
+  - Remove individual warnings with confirmation
+  - Clear all warnings with confirmation
+  - Real-time warning count updates after actions
+  - Warnings column in users table showing warning count
+  - Click warning count badge to open warnings dialog
+  - Formatted date display (MMM DD, YYYY HH:MM)
+  - Empty state message when user has no warnings
+
+### Changed
+
+- **Enhanced /profile Command**
+  - Now displays achievements earned by user
+  - Shows total achievement points
+  - Displays achievement progress percentage
+  - Lists up to 10 most recent achievements with icons
+  - Achievement section added to user profile output
+  - Better formatting and organization of profile information
+
+- **Improved Moderation Commands**
+  - `/warn` command now creates Warning documents instead of just incrementing counter
+  - Warning records include issuer alias and reason
+  - `/clearwarns` command now removes all Warning documents for user
+  - Warning threshold (3 warnings = auto-ban) still works with new system
+  - Better audit trail for warnings with individual tracking
+  - Moderation service now supports warnings CRUD operations
+
+- **Role Assignment Improvements**
+  - `/promote`, `/demote`, `/whitelist` commands now notify users
+  - Role changes trigger automatic notifications to affected users
+  - Custom role assignments send notifications with permissions list
+  - Role removal notifications sent when roles are cleared
+  - Better user experience with immediate feedback on role changes
+  - Error handling for blocked users in role notifications
+
+- **Dashboard Moderation Enhancements**
+  - Moderation controller expanded with warnings endpoints
+  - Batch controller updated with warnings support
+  - Moderation service includes full warnings CRUD
+  - User service enhanced with warnings queries
+  - Better separation of concerns for moderation operations
+  - Improved error handling in moderation services
+
+- **User Management Updates**
+  - Users index now supports Warning model queries
+  - User service includes warnings data in user objects
+  - Enhanced user details with warnings information
+  - Better data consistency between bot and dashboard
+  - Warnings integrated into user statistics
+
+- **Relay System Improvements**
+  - Edit relay now includes achievement checks
+  - Message relay triggers achievement evaluation
+  - Better integration of achievement system into core relay flow
+  - Achievement notifications sent without blocking message relay
+
+### Fixed
+
+- **Warning System Consistency**
+  - Warnings now persistently tracked with full audit trail
+  - No more loss of warning context when clearing warnings
+  - Better visibility into warning history for moderators
+  - Accurate warning counts with database-backed tracking
+
+- **Role Assignment Feedback**
+  - Users now immediately know when their roles change
+  - No more silent role changes without user notification
+  - Clear communication of permission changes
+  - Better user awareness of privilege changes
+
+- **Database Schema Issues**
+  - Warning model added with proper indexes
+  - Achievement and UserAchievement models properly registered
+  - Database migrations include new collections
+  - Proper compound indexes for efficient queries
+
 ## [2.3.0] - 2025-01-07
 
 ### Added

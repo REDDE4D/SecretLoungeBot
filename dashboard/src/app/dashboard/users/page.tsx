@@ -40,8 +40,9 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { apiClient } from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
-import { Search, MoreVertical, Ban, Volume2, UserX, AlertTriangle, Image, Shield } from 'lucide-react';
+import { Search, MoreVertical, Ban, Volume2, UserX, AlertTriangle, Image, Shield, Eye } from 'lucide-react';
 import { AssignRolesDialog } from '@/components/users/AssignRolesDialog';
+import { WarningsDialog } from '@/components/users/WarningsDialog';
 
 interface User {
   id: string;
@@ -90,6 +91,7 @@ export default function UsersPage() {
     reason?: string;
   }>({ open: false, type: null });
   const [rolesDialogOpen, setRolesDialogOpen] = useState(false);
+  const [warningsDialogOpen, setWarningsDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -188,6 +190,11 @@ export default function UsersPage() {
   const openRolesDialog = (user: User) => {
     setSelectedUser(user);
     setRolesDialogOpen(true);
+  };
+
+  const openWarningsDialog = (user: User) => {
+    setSelectedUser(user);
+    setWarningsDialogOpen(true);
   };
 
   const getRoleBadge = (role: string | null) => {
@@ -337,8 +344,16 @@ export default function UsersPage() {
                       </TableCell>
                       <TableCell>{user.totalMessages}</TableCell>
                       <TableCell>
-                        {user.warnings > 0 && (
-                          <Badge variant="destructive">{user.warnings}</Badge>
+                        {user.warnings > 0 ? (
+                          <Badge
+                            variant="destructive"
+                            className="cursor-pointer hover:opacity-80"
+                            onClick={() => openWarningsDialog(user)}
+                          >
+                            {user.warnings}
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -358,6 +373,10 @@ export default function UsersPage() {
                               <DropdownMenuItem onClick={() => openRolesDialog(user)}>
                                 <Shield className="mr-2 h-4 w-4" />
                                 Manage Roles
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => openWarningsDialog(user)}>
+                                <Eye className="mr-2 h-4 w-4" />
+                                View Warnings
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onClick={() => openActionDialog(user, 'ban')}>
@@ -423,6 +442,15 @@ export default function UsersPage() {
         onOpenChange={setRolesDialogOpen}
         user={selectedUser}
         onRolesUpdated={fetchUsers}
+      />
+
+      {/* Warnings Dialog */}
+      <WarningsDialog
+        open={warningsDialogOpen}
+        onOpenChange={setWarningsDialogOpen}
+        userId={selectedUser?.id || null}
+        alias={selectedUser?.alias || null}
+        onWarningsUpdated={fetchUsers}
       />
 
       {/* Action Dialog */}
