@@ -184,16 +184,14 @@ const commands = {
     description: "View or change your personal preferences",
     example: "/preferences set compactMode true",
   },
+  myroles: {
+    category: "account",
+    usage: "/myroles",
+    description: "View your roles and permissions",
+    example: "/myroles",
+  },
 
   // Moderator Commands
-  whois: {
-    category: "admin",
-    role: "owner",
-    usage: "/whois <alias|reply>",
-    aliases: ["w", "userinfo", "ui"],
-    description: "View detailed user information and moderation history",
-    example: "/whois SuspiciousUser",
-  },
   warn: {
     category: "moderation",
     role: "mod",
@@ -248,6 +246,14 @@ const commands = {
   },
 
   // Admin Commands
+  whois: {
+    category: "admin",
+    role: "admin",
+    usage: "/whois <alias|reply>",
+    aliases: ["w", "userinfo", "ui"],
+    description: "View detailed user information and moderation history",
+    example: "/whois SuspiciousUser",
+  },
   ban: {
     category: "admin",
     role: "admin",
@@ -321,7 +327,7 @@ const commands = {
   role_create: {
     category: "admin",
     role: "admin",
-    usage: "/role_create or /newrole",
+    usage: "/role_create",
     aliases: ["newrole"],
     description: "Create custom role with interactive wizard",
     example: "/role_create",
@@ -329,7 +335,7 @@ const commands = {
   role_list: {
     category: "admin",
     role: "admin",
-    usage: "/role_list or /roles",
+    usage: "/role_list",
     aliases: ["roles"],
     description: "View all roles (system & custom)",
     example: "/role_list",
@@ -382,13 +388,6 @@ const commands = {
     usage: "/whohas <role>",
     description: "List all users with a role",
     example: "/whohas admin",
-  },
-  myroles: {
-    category: "account",
-    role: null,
-    usage: "/myroles",
-    description: "View your roles and permissions",
-    example: "/myroles",
   },
   announce_lobby: {
     category: "admin",
@@ -587,216 +586,393 @@ const commands = {
 
 // Category information
 const categories = {
-  identity: { name: "👤 Identity & Profile", icon: "👤" },
-  lobby: { name: "🏠 Lobby Participation", icon: "🏠" },
+  identity: { name: "👤 Identity", icon: "👤" },
+  lobby: { name: "🏠 Lobby", icon: "🏠" },
   messaging: { name: "💬 Messaging", icon: "💬" },
-  privacy: { name: "🔒 Privacy & Blocking", icon: "🔒" },
-  community: { name: "🎯 Community Features", icon: "🎯" },
-  account: { name: "⚙️ Account Management", icon: "⚙️" },
+  privacy: { name: "🔒 Privacy", icon: "🔒" },
+  community: { name: "🎯 Community", icon: "🎯" },
+  account: { name: "⚙️ Account", icon: "⚙️" },
   moderation: { name: "🛡️ Moderation", icon: "🛡️" },
-  admin: { name: "⚡ Administration", icon: "⚡" },
+  admin: { name: "⚡ Admin", icon: "⚡" },
+};
+
+// Admin command groups
+const adminGroups = {
+  moderation: {
+    title: "👮 User Moderation",
+    commands: [
+      "whois",
+      "ban",
+      "unban",
+      "mute",
+      "unmute",
+      "kick",
+      "restrictmedia",
+      "unrestrictmedia",
+    ],
+  },
+  roles: {
+    title: "🎭 Roles",
+    commands: [
+      "role_create",
+      "role_list",
+      "role_info",
+      "role_edit",
+      "role_delete",
+      "setrole",
+      "removerole",
+      "clearroles",
+      "whohas",
+      "whitelist",
+    ],
+  },
+  announcements: {
+    title: "📢 Announcements",
+    commands: [
+      "announce_lobby",
+      "announce_all",
+      "pin",
+      "unpin",
+      "pinned",
+      "schedule",
+      "welcome",
+    ],
+  },
+  invites: {
+    title: "🔑 Invites",
+    commands: [
+      "invite_on",
+      "invite_off",
+      "invite_new",
+      "invite_list",
+      "invite_revoke",
+      "invite_activate",
+      "invite_delete",
+    ],
+  },
+  rules: {
+    title: "📋 Rules",
+    commands: ["rules_add", "rules_remove", "rules_list", "rules_clear"],
+  },
+  settings: {
+    title: "⚙️ Settings",
+    commands: ["slowmode", "filter", "antispam", "maintenance"],
+  },
+  data: {
+    title: "💾 Data & Stats",
+    commands: ["stats", "auditlog", "export", "nuke", "purge"],
+  },
 };
 
 export function register(bot) {
+  // DEBUG: Log ALL callback queries to see what's happening
+  bot.on("callback_query", (ctx, next) => {
+    const data = ctx.callbackQuery?.data;
+    console.log("DEBUG [help.js middleware]: Callback received, data:", data);
+    if (data && data.startsWith("help:")) {
+      console.log("DEBUG [help.js middleware]: This is a help callback!");
+    }
+    return next();
+  });
+
+  // Main help command
   bot.command(["help", "h"], async (ctx) => {
-    const args = ctx.message.text.trim().split(" ").slice(1);
-    const query = args[0]?.toLowerCase();
+    try {
+      const args = ctx.message.text.trim().split(" ").slice(1);
+      const query = args[0]?.toLowerCase();
 
-    const userId = String(ctx.from.id);
-    const userIsMod = await isMod(userId);
-    const userIsAdmin = await isAdmin(userId);
+      const userId = String(ctx.from.id);
+      const userIsMod = await isMod(userId);
+      const userIsAdmin = await isAdmin(userId);
 
-    // Specific command help
-    if (query && commands[query]) {
-      return showCommandHelp(ctx, query, userIsMod, userIsAdmin);
-    }
+      // Specific command help
+      if (query && commands[query]) {
+        return showCommandHelp(ctx, query, userIsMod, userIsAdmin);
+      }
 
-    // Category help
-    if (query && categories[query]) {
-      return showCategoryHelp(ctx, query, userIsMod, userIsAdmin);
+      // Show main interactive help menu
+      return showMainHelpMenu(ctx, userIsMod, userIsAdmin);
+    } catch (error) {
+      console.error("Error in help command:", error);
+      await ctx.reply("❌ An error occurred. Please try again.");
     }
+  });
 
-    // Shortcuts
-    if (query === "user") {
-      return showUserHelp(ctx);
-    }
-    if (query === "mod" && userIsMod) {
-      return showModHelp(ctx);
-    }
-    if (query === "admin" && userIsAdmin) {
-      return showAdminHelp(ctx);
-    }
+  // Specific action handlers MUST come before regex patterns to avoid conflicts
 
-    // Default: show main help
-    return showMainHelp(ctx, userIsMod, userIsAdmin);
+  // Back to main menu
+  bot.action("help:main", async (ctx) => {
+    try {
+      console.log("DEBUG: help:main action triggered");
+      const userId = String(ctx.from.id);
+      const userIsMod = await isMod(userId);
+      const userIsAdmin = await isAdmin(userId);
+
+      await ctx.answerCbQuery();
+      await showMainHelpMenu(ctx, userIsMod, userIsAdmin, true);
+    } catch (error) {
+      console.error("Error in help:main action:", error);
+      await ctx.answerCbQuery("❌ Error occurred");
+    }
+  });
+
+  // Back to admin categories
+  bot.action("help:admin:back", async (ctx) => {
+    try {
+      console.log("DEBUG: help:admin:back action triggered");
+      const userId = String(ctx.from.id);
+      const userIsAdmin = await isAdmin(userId);
+
+      if (!userIsAdmin) {
+        return ctx.answerCbQuery("❌ Admin access required");
+      }
+
+      await ctx.answerCbQuery();
+      await showCategoryCommands(ctx, "admin", false, userIsAdmin, true);
+    } catch (error) {
+      console.error("Error in help:admin:back action:", error);
+      await ctx.answerCbQuery("❌ Error occurred");
+    }
+  });
+
+  // Category button clicks (regex pattern)
+  bot.action(/^help:cat:(.+)$/, async (ctx) => {
+    try {
+      const category = ctx.match[1];
+      console.log("DEBUG: help:cat action triggered for category:", category);
+      const userId = String(ctx.from.id);
+      const userIsMod = await isMod(userId);
+      const userIsAdmin = await isAdmin(userId);
+
+      await ctx.answerCbQuery();
+      await showCategoryCommands(ctx, category, userIsMod, userIsAdmin, true);
+    } catch (error) {
+      console.error("Error in help:cat action:", error);
+      await ctx.answerCbQuery("❌ Error occurred");
+    }
+  });
+
+  // Admin subcategory buttons (regex pattern - must come after specific handlers)
+  bot.action(/^help:admin:(.+)$/, async (ctx) => {
+    try {
+      const subcategory = ctx.match[1];
+      console.log("DEBUG: help:admin action triggered for subcategory:", subcategory);
+
+      // Skip if this is the "back" action (handled above)
+      if (subcategory === "back") {
+        console.log("DEBUG: Skipping 'back' in regex handler");
+        return;
+      }
+
+      const userId = String(ctx.from.id);
+      const userIsAdmin = await isAdmin(userId);
+
+      if (!userIsAdmin) {
+        return ctx.answerCbQuery("❌ Admin access required");
+      }
+
+      await ctx.answerCbQuery();
+      await showAdminSubcategory(ctx, subcategory);
+    } catch (error) {
+      console.error("Error in help:admin action:", error);
+      await ctx.answerCbQuery("❌ Error occurred");
+    }
   });
 }
 
-function showMainHelp(ctx, userIsMod, userIsAdmin) {
-  let text = `📖 *Anonymous Lobby Bot – Help*\n`;
-  text += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+// Show main help menu with category buttons
+async function showMainHelpMenu(ctx, userIsMod, userIsAdmin, isEdit = false) {
+  console.log("DEBUG: showMainHelpMenu called, userIsMod:", userIsMod, "userIsAdmin:", userIsAdmin);
+  const text = `📖 *Bot Help Menu*\n\nSelect a category to explore commands:`;
 
-  text += `Welcome to the anonymous lobby\\! Send messages anonymously, customize your identity, and engage with the community\\.\n\n`;
+  const buttons = [];
 
-  text += `*🔍 Get Help*\n`;
-  text += `\`/help user\` \\- User commands\n`;
-  if (userIsMod) text += `\`/help mod\` \\- Moderator commands\n`;
-  if (userIsAdmin) text += `\`/help admin\` \\- Admin commands\n`;
-  text += `\`/help <command>\` \\- Detailed help for a command\n\n`;
+  // User categories (always visible)
+  buttons.push([
+    { text: "👤 Identity", callback_data: "help:cat:identity" },
+    { text: "🏠 Lobby", callback_data: "help:cat:lobby" },
+  ]);
+  buttons.push([
+    { text: "💬 Messaging", callback_data: "help:cat:messaging" },
+    { text: "🔒 Privacy", callback_data: "help:cat:privacy" },
+  ]);
+  buttons.push([
+    { text: "🎯 Community", callback_data: "help:cat:community" },
+    { text: "⚙️ Account", callback_data: "help:cat:account" },
+  ]);
 
-  text += `*📚 Command Categories*\n`;
-  text += `${escapeMarkdownV2(
-    categories.identity.icon
-  )} *Identity* \\- /alias, /icon, /profile\n`;
-  text += `${escapeMarkdownV2(
-    categories.lobby.icon
-  )} *Lobby* \\- /join, /leave, /online\n`;
-  text += `${escapeMarkdownV2(
-    categories.messaging.icon
-  )} *Messaging* \\- /msg, /sign, /history\n`;
-  text += `${escapeMarkdownV2(
-    categories.privacy.icon
-  )} *Privacy* \\- /block, /unblock\n`;
-  text += `${escapeMarkdownV2(
-    categories.community.icon
-  )} *Community* \\- /poll, /leaderboard\n`;
-  if (userIsMod)
-    text += `${escapeMarkdownV2(
-      categories.moderation.icon
-    )} *Moderation* \\- /whois, /warn, /reports\n`;
-  if (userIsAdmin)
-    text += `${escapeMarkdownV2(
-      categories.admin.icon
-    )} *Admin* \\- /ban, /mute, /announce\n\n`;
-
-  text += `━━━━━━━━━━━━━━━━━━━━\n`;
-  text += `💡 *Quick Start*\n`;
-  text += `1\\. Set your alias: \`/alias YourName\`\n`;
-  text += `2\\. Join the lobby: \`/join\`\n`;
-  text += `3\\. Send any message or media\\!\n\n`;
-  text += `🔗 All replies are threaded anonymously\\.\n`;
-  text += `🔒 Block users with \`/block\` for privacy\\.\n`;
-
-  ctx.reply(text, { parse_mode: "MarkdownV2" });
-}
-
-function showUserHelp(ctx) {
-  const userCategories = [
-    "identity",
-    "lobby",
-    "messaging",
-    "privacy",
-    "community",
-    "account",
-  ];
-  let text = `👤 *User Commands*\n━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-  for (const cat of userCategories) {
-    text += `*${escapeMarkdownV2(categories[cat].name)}*\n`;
-
-    for (const [name, cmd] of Object.entries(commands)) {
-      if (cmd.category === cat && !cmd.role) {
-        const aliases = cmd.aliases
-          ? ` \\(${cmd.aliases.map((a) => `/${a}`).join(", ")}\\)`
-          : "";
-        text += `\`${cmd.usage}\`${aliases}\n`;
-        text += `  ${escapeMarkdownV2(cmd.description)}\n\n`;
-      }
-    }
+  // Moderator category (if user is mod)
+  if (userIsMod) {
+    buttons.push([{ text: "🛡️ Moderation", callback_data: "help:cat:moderation" }]);
   }
 
-  text += `\n💡 Use \`/help <command>\` for detailed help on any command\\.\n`;
-  ctx.reply(text, { parse_mode: "MarkdownV2" });
-}
-
-function showModHelp(ctx) {
-  let text = `🛡️ *Moderator Commands*\n━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-  for (const [name, cmd] of Object.entries(commands)) {
-    if (cmd.category === "moderation") {
-      const aliases = cmd.aliases
-        ? ` \\(${cmd.aliases.map((a) => `/${a}`).join(", ")}\\)`
-        : "";
-      text += `\`${cmd.usage}\`${aliases}\n`;
-      text += `  ${escapeMarkdownV2(cmd.description)}\n\n`;
-    }
+  // Admin category (if user is admin)
+  if (userIsAdmin) {
+    buttons.push([{ text: "⚡ Administration", callback_data: "help:cat:admin" }]);
   }
 
-  text += `\n💡 Use \`/help <command>\` for detailed help and examples\\.\n`;
-  ctx.reply(text, { parse_mode: "MarkdownV2" });
-}
+  const keyboard = {
+    inline_keyboard: buttons,
+  };
 
-function showAdminHelp(ctx) {
-  let text = `⚡ *Admin Commands*\n━━━━━━━━━━━━━━━━━━━━\n\n`;
-
-  for (const [name, cmd] of Object.entries(commands)) {
-    if (cmd.category === "admin") {
-      const aliases = cmd.aliases
-        ? ` \\(${cmd.aliases.map((a) => `/${a}`).join(", ")}\\)`
-        : "";
-      text += `\`${cmd.usage}\`${aliases}\n`;
-      text += `  ${escapeMarkdownV2(cmd.description)}\n\n`;
-    }
+  if (isEdit) {
+    await ctx.editMessageText(text, {
+      parse_mode: "MarkdownV2",
+      reply_markup: keyboard,
+    });
+  } else {
+    await ctx.reply(text, {
+      parse_mode: "MarkdownV2",
+      reply_markup: keyboard,
+    });
   }
-
-  text += `\n💡 Use \`/help <command>\` for detailed help and examples\\.\n`;
-  ctx.reply(text, { parse_mode: "MarkdownV2" });
 }
 
-function showCategoryHelp(ctx, category, userIsMod, userIsAdmin) {
+// Show commands in a category
+async function showCategoryCommands(
+  ctx,
+  category,
+  userIsMod,
+  userIsAdmin,
+  isEdit = false
+) {
   const cat = categories[category];
+  if (!cat) {
+    return ctx.answerCbQuery("❌ Category not found");
+  }
+
+  // Special handling for admin category - show subcategories
+  if (category === "admin") {
+    let text = `⚡ *Admin Commands*\n\nSelect a subcategory:`;
+
+    const buttons = [];
+    const groupKeys = Object.keys(adminGroups);
+
+    for (let i = 0; i < groupKeys.length; i += 2) {
+      const row = [];
+      row.push({
+        text: adminGroups[groupKeys[i]].title,
+        callback_data: `help:admin:${groupKeys[i]}`,
+      });
+      if (groupKeys[i + 1]) {
+        row.push({
+          text: adminGroups[groupKeys[i + 1]].title,
+          callback_data: `help:admin:${groupKeys[i + 1]}`,
+        });
+      }
+      buttons.push(row);
+    }
+
+    buttons.push([{ text: "⬅️ Back", callback_data: "help:main" }]);
+
+    const keyboard = {
+      inline_keyboard: buttons,
+    };
+
+    if (isEdit) {
+      await ctx.editMessageText(text, {
+        parse_mode: "MarkdownV2",
+        reply_markup: keyboard,
+      });
+    } else {
+      await ctx.reply(text, {
+        parse_mode: "MarkdownV2",
+        reply_markup: keyboard,
+      });
+    }
+    return;
+  }
+
+  // Regular category - show command list
   let text = `${escapeMarkdownV2(cat.icon)} *${escapeMarkdownV2(
     cat.name
-  )}*\n━━━━━━━━━━━━━━━━━━━━\n\n`;
+  )} Commands*\n\n`;
 
-  for (const [name, cmd] of Object.entries(commands)) {
-    if (cmd.category === category) {
-      // Skip if user doesn't have permission
-      if (cmd.role === "admin" && !userIsAdmin) continue;
-      if (cmd.role === "mod" && !userIsMod) continue;
+  for (const cmd of Object.values(commands)) {
+    if (cmd.category !== category) continue;
 
-      const aliases = cmd.aliases
-        ? ` \\(${cmd.aliases.map((a) => `/${a}`).join(", ")}\\)`
-        : "";
-      text += `\`${cmd.usage}\`${aliases}\n`;
-      text += `  ${escapeMarkdownV2(cmd.description)}\n`;
-      text += `  Example: \`${cmd.example}\`\n\n`;
-    }
+    // Check permissions
+    if (cmd.role === "admin" && !userIsAdmin) continue;
+    if (cmd.role === "mod" && !userIsMod) continue;
+
+    const aliases = cmd.aliases
+      ? ` \\(${cmd.aliases.map((a) => `/${escapeMarkdownV2(a)}`).join(", ")}\\)`
+      : "";
+    text += `\`${escapeMarkdownV2(cmd.usage)}\`${aliases}\n`;
+    text += `${escapeMarkdownV2(cmd.description)}\n\n`;
   }
 
-  ctx.reply(text, { parse_mode: "MarkdownV2" });
+  const keyboard = {
+    inline_keyboard: [[{ text: "⬅️ Back to Menu", callback_data: "help:main" }]],
+  };
+
+  if (isEdit) {
+    await ctx.editMessageText(text, {
+      parse_mode: "MarkdownV2",
+      reply_markup: keyboard,
+    });
+  } else {
+    await ctx.reply(text, {
+      parse_mode: "MarkdownV2",
+      reply_markup: keyboard,
+    });
+  }
 }
 
+// Show admin subcategory
+async function showAdminSubcategory(ctx, subcategory, isEdit = false) {
+  const group = adminGroups[subcategory];
+  if (!group) {
+    return ctx.answerCbQuery("❌ Subcategory not found");
+  }
+
+  let text = `*${escapeMarkdownV2(group.title)}*\n\n`;
+
+  for (const cmdName of group.commands) {
+    const cmd = commands[cmdName];
+    if (!cmd) continue;
+
+    const aliases = cmd.aliases
+      ? ` \\(${cmd.aliases.map((a) => `/${escapeMarkdownV2(a)}`).join(", ")}\\)`
+      : "";
+    text += `\`${escapeMarkdownV2(cmd.usage)}\`${aliases}\n`;
+    text += `${escapeMarkdownV2(cmd.description)}\n\n`;
+  }
+
+  const keyboard = {
+    inline_keyboard: [
+      [{ text: "⬅️ Back to Admin", callback_data: "help:admin:back" }],
+      [{ text: "🏠 Main Menu", callback_data: "help:main" }],
+    ],
+  };
+
+  await ctx.editMessageText(text, {
+    parse_mode: "MarkdownV2",
+    reply_markup: keyboard,
+  });
+}
+
+// Show specific command help (text-based)
 function showCommandHelp(ctx, cmdName, userIsMod, userIsAdmin) {
   const cmd = commands[cmdName];
 
   // Check permissions
   if (cmd.role === "admin" && !userIsAdmin) {
-    return ctx.reply(
-      escapeMarkdownV2("❌ You don't have permission to view this command."),
-      {
-        parse_mode: "MarkdownV2",
-      }
-    );
+    return ctx.reply("❌ You don't have permission to view this command.");
   }
   if (cmd.role === "mod" && !userIsMod) {
-    return ctx.reply(
-      escapeMarkdownV2("❌ You don't have permission to view this command."),
-      {
-        parse_mode: "MarkdownV2",
-      }
-    );
+    return ctx.reply("❌ You don't have permission to view this command.");
   }
 
-  let text = `📖 *Command: /${cmdName}*\n━━━━━━━━━━━━━━━━━━━━\n\n`;
+  let text = `📖 *Command: /${escapeMarkdownV2(cmdName)}*\n\n`;
 
   if (cmd.aliases && cmd.aliases.length > 0) {
-    text += `*Aliases:* ${cmd.aliases.map((a) => `\`/${a}\``).join(", ")}\n\n`;
+    text += `*Aliases:* ${cmd.aliases.map((a) => `\`/${escapeMarkdownV2(a)}\``).join(", ")}\n\n`;
   }
 
-  text += `*Usage:*\n\`${cmd.usage}\`\n\n`;
+  text += `*Usage:*\n\`${escapeMarkdownV2(cmd.usage)}\`\n\n`;
   text += `*Description:*\n${escapeMarkdownV2(cmd.description)}\n\n`;
-  text += `*Example:*\n\`${cmd.example}\`\n\n`;
+  text += `*Example:*\n\`${escapeMarkdownV2(cmd.example)}\`\n\n`;
 
   const cat = categories[cmd.category];
   if (cat) {

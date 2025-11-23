@@ -323,6 +323,80 @@ export async function initializeAchievements() {
       points: 200,
       condition: { role: "admin" },
     },
+
+    // Karma Achievements
+    {
+      achievementId: "karma_helpful",
+      name: "Helpful Hand",
+      description: "Earn 10 karma points",
+      icon: "🤝",
+      category: "social",
+      tier: "bronze",
+      points: 20,
+      condition: { karma: 10 },
+    },
+    {
+      achievementId: "karma_favorite",
+      name: "Community Favorite",
+      description: "Earn 50 karma points",
+      icon: "🌟",
+      category: "social",
+      tier: "silver",
+      points: 50,
+      condition: { karma: 50 },
+    },
+    {
+      achievementId: "karma_legend",
+      name: "Legend",
+      description: "Earn 100 karma points",
+      icon: "⭐",
+      category: "social",
+      tier: "gold",
+      points: 100,
+      condition: { karma: 100 },
+    },
+    {
+      achievementId: "karma_millionaire",
+      name: "Karma Millionaire",
+      description: "Earn 500 karma points",
+      icon: "💎",
+      category: "social",
+      tier: "platinum",
+      points: 250,
+      condition: { karma: 500 },
+    },
+    {
+      achievementId: "karma_generous",
+      name: "Generous Spirit",
+      description: "Give 25 karma to others",
+      icon: "🎁",
+      category: "social",
+      tier: "bronze",
+      points: 25,
+      condition: { karmaGiven: 25 },
+    },
+    {
+      achievementId: "karma_controversial",
+      name: "Controversial",
+      description: "Receive -10 karma",
+      icon: "⚠️",
+      category: "special",
+      tier: "bronze",
+      points: 10,
+      secret: true,
+      condition: { karma: -10 },
+    },
+    {
+      achievementId: "karma_reformed",
+      name: "Reformed",
+      description: "Go from -50 to +50 karma",
+      icon: "✨",
+      category: "special",
+      tier: "silver",
+      points: 75,
+      secret: true,
+      condition: { karmaReformed: true },
+    },
   ];
 
   for (const achievement of defaultAchievements) {
@@ -440,6 +514,15 @@ export async function checkAchievements(userId) {
   const daysInLobby = activity.firstSeen
     ? Math.floor((Date.now() - activity.firstSeen.getTime()) / (1000 * 60 * 60 * 24))
     : 0;
+  const karma = user.karma || 0;
+
+  // Get karma given (for generous achievement)
+  const Karma = mongoose.model("Karma");
+  const karmaGivenResult = await Karma.aggregate([
+    { $match: { giverId: userId } },
+    { $group: { _id: null, total: { $sum: { $abs: "$amount" } } } },
+  ]);
+  const karmaGiven = karmaGivenResult.length > 0 ? karmaGivenResult[0].total : 0;
 
   // Get all achievements
   const allAchievements = await Achievement.find({}).lean();
@@ -466,6 +549,15 @@ export async function checkAchievements(userId) {
     } else if (condition.daysInLobby && daysInLobby >= condition.daysInLobby) {
       shouldAward = true;
     } else if (condition.role && user.role === condition.role) {
+      shouldAward = true;
+    } else if (condition.karma !== undefined) {
+      // Check karma threshold (handles both positive and negative)
+      if (condition.karma >= 0 && karma >= condition.karma) {
+        shouldAward = true;
+      } else if (condition.karma < 0 && karma <= condition.karma) {
+        shouldAward = true;
+      }
+    } else if (condition.karmaGiven && karmaGiven >= condition.karmaGiven) {
       shouldAward = true;
     }
 

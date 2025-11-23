@@ -7,7 +7,7 @@ import { connectMongo } from "./db/mongoose.js";
 import { checkCompliance } from "./users/compliance.js";
 import { runAllCleanupTasks } from "./utils/cleanup.js";
 import { sendMetrics } from "./metrics/sender.js";
-import { escapeMarkdownV2 } from "./utils/sanitize.js";
+import { escapeHTML } from "./utils/sanitize.js";
 import logger from "./utils/logger.js";
 import * as spamHandler from "./handlers/spamHandler.js";
 import { checkExpiredPolls } from "./utils/pollExpiration.js";
@@ -131,26 +131,24 @@ bot.catch(async (err, ctx) => {
     hour12: false
   });
 
-  // Build error message
-  const errorMsg = [
-    `🚨 *Bot Error*`,
-    `⏰ ${escapeMarkdownV2(timestamp)}`,
-    `👤 User: \`${escapeMarkdownV2(String(userId))}\``,
-    `📋 Type: \`${escapeMarkdownV2(updateType)}\``,
-    `❌ Error: \`${escapeMarkdownV2(errorText)}\``,
-    `📍 Stack: \`${escapeMarkdownV2(stackPreview)}\``,
-  ];
+  // Build error message with HTML formatting
+  let errorMsg = `<b>🚨 Bot Error</b>\n\n`;
+  errorMsg += `<b>⏰ Time:</b> ${escapeHTML(timestamp)}\n`;
+  errorMsg += `<b>👤 User:</b> <code>${escapeHTML(String(userId))}</code>\n`;
+  errorMsg += `<b>📋 Type:</b> <code>${escapeHTML(updateType)}</code>\n`;
+  errorMsg += `<b>❌ Error:</b> <code>${escapeHTML(errorText)}</code>\n`;
+  errorMsg += `<b>📍 Stack:</b> <code>${escapeHTML(stackPreview)}</code>`;
 
   // Add aggregation info if this error has occurred multiple times
   if (cached && cached.count > 1) {
     const occurrenceWindow = Math.floor((now - cached.firstSeen) / 1000);
-    errorMsg.push(`🔢 Occurrences: \`${cached.count}\` \\(in ${occurrenceWindow}s\\)`);
+    errorMsg += `\n<b>🔢 Occurrences:</b> <code>${cached.count}</code> (in ${occurrenceWindow}s)`;
   }
 
   try {
     // Send notification to admin via Telegram
-    await ctx.telegram.sendMessage(ERROR_NOTIFICATION_ID, errorMsg.join("\n"), {
-      parse_mode: "MarkdownV2",
+    await ctx.telegram.sendMessage(ERROR_NOTIFICATION_ID, errorMsg, {
+      parse_mode: "HTML",
     });
 
     // Update last notified timestamp
@@ -278,7 +276,7 @@ setInterval(setupRecurringAnnouncements, 60 * 60 * 1000);
 
 // Launch the bot
 bot.launch({
-  allowedUpdates: ['message', 'edited_message', 'message_reaction']
+  allowedUpdates: ['message', 'edited_message', 'message_reaction', 'callback_query']
 });
 
 logger.info("✅ Bot launched successfully");

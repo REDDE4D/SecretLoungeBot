@@ -1,5 +1,5 @@
 import { getAlias, setRole } from "../../users/index.js";
-import { escapeMarkdownV2 } from "../../utils/sanitize.js";
+import { escapeHTML, formatError, formatWarning, formatInfo } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import logger from "../../utils/logger.js";
 
@@ -17,21 +17,21 @@ export function register(bot) {
   bot.command("promote", async (ctx) => {
     try {
       // Show deprecation notice
-      const deprecationNotice = `⚠️ *DEPRECATED* ⚠️
+      const deprecationNotice = `<b>⚠️ DEPRECATED ⚠️</b>
 
-This command is deprecated and will be removed in a future version\\.
+This command is deprecated and will be removed in a future version.
 
-Please use the new role commands:
-• \`/setrole @user admin\` \\- Promote to admin
-• \`/setrole @user mod\` \\- Promote to moderator
-• \`/removerole @user\` \\- Remove role
-• \`/clearroles @user\` \\- Remove all roles
+<b>Please use the new role commands:</b>
+• <code>/setrole @user admin</code> - Promote to admin
+• <code>/setrole @user mod</code> - Promote to moderator
+• <code>/removerole @user</code> - Remove role
+• <code>/clearroles @user</code> - Remove all roles
 
-Type \`/help\` for more information\\.
+Type <code>/help</code> for more information.
 
-*Continuing with legacy command\\.\\.\\.*`;
+<i>Continuing with legacy command...</i>`;
 
-      await ctx.reply(deprecationNotice, { parse_mode: "MarkdownV2" });
+      await ctx.reply(deprecationNotice, { parse_mode: "HTML" });
 
       const args = ctx.message.text.trim().split(" ").slice(1);
 
@@ -48,18 +48,22 @@ Type \`/help\` for more information\\.
       const roleName = hasAlias ? args[1] : args[0];
 
       if (!["admin", "mod"].includes(roleName)) {
-        return ctx.reply("Usage: /promote <alias|reply> admin|mod");
+        return ctx.reply(
+          formatError("Please specify a valid role: admin or mod", "Invalid Usage"),
+          { parse_mode: "HTML" }
+        );
       }
 
       const result = await setRole(userId, roleName);
 
       logger.logModeration("promote", ctx.from.id, userId, { role: roleName, deprecated: true });
 
-      ctx.reply(escapeMarkdownV2(result), { parse_mode: "MarkdownV2" });
+      ctx.reply(escapeHTML(result), { parse_mode: "HTML" });
     } catch (err) {
-      ctx.reply(escapeMarkdownV2(err.message || "❌ Could not resolve user."), {
-        parse_mode: "MarkdownV2",
-      });
+      ctx.reply(
+        formatError(err.message || "Could not resolve user."),
+        { parse_mode: "HTML" }
+      );
     }
   });
 
@@ -67,20 +71,20 @@ Type \`/help\` for more information\\.
   bot.command("demote", async (ctx) => {
     try {
       // Show deprecation notice
-      const deprecationNotice = `⚠️ *DEPRECATED* ⚠️
+      const deprecationNotice = `<b>⚠️ DEPRECATED ⚠️</b>
 
-This command is deprecated and will be removed in a future version\\.
+This command is deprecated and will be removed in a future version.
 
-Please use the new role commands:
-• \`/removerole @user <role>\` \\- Remove specific role
-• \`/clearroles @user\` \\- Remove all roles
-• \`/setrole @user <role>\` \\- Assign role
+<b>Please use the new role commands:</b>
+• <code>/removerole @user &lt;role&gt;</code> - Remove specific role
+• <code>/clearroles @user</code> - Remove all roles
+• <code>/setrole @user &lt;role&gt;</code> - Assign role
 
-Type \`/help\` for more information\\.
+Type <code>/help</code> for more information.
 
-*Continuing with legacy command\\.\\.\\.*`;
+<i>Continuing with legacy command...</i>`;
 
-      await ctx.reply(deprecationNotice, { parse_mode: "MarkdownV2" });
+      await ctx.reply(deprecationNotice, { parse_mode: "HTML" });
 
       const args = ctx.message.text.trim().split(" ").slice(1);
       const aliasOrNothing = args[0];
@@ -90,11 +94,12 @@ Type \`/help\` for more information\\.
 
       logger.logModeration("demote", ctx.from.id, userId, { deprecated: true });
 
-      ctx.reply(escapeMarkdownV2(result), { parse_mode: "MarkdownV2" });
+      ctx.reply(escapeHTML(result), { parse_mode: "HTML" });
     } catch (err) {
-      ctx.reply(escapeMarkdownV2(err.message || "❌ Could not resolve user."), {
-        parse_mode: "MarkdownV2",
-      });
+      ctx.reply(
+        formatError(err.message || "Could not resolve user."),
+        { parse_mode: "HTML" }
+      );
     }
   });
 }

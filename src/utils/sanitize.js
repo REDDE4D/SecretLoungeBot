@@ -38,6 +38,54 @@ export function renderIconHTML(icon) {
 }
 
 /**
+ * Format error message with HTML styling
+ * @param {string} message - Error message
+ * @param {string} [title] - Optional error title (defaults to "Error")
+ * @returns {string} HTML-formatted error message
+ */
+export function formatError(message, title = "Error") {
+  const escapedTitle = escapeHTML(title);
+  const escapedMessage = escapeHTML(message);
+  return `<b>❌ ${escapedTitle}</b>\n${escapedMessage}`;
+}
+
+/**
+ * Format success message with HTML styling
+ * @param {string} message - Success message
+ * @param {string} [title] - Optional success title (defaults to "Success")
+ * @returns {string} HTML-formatted success message
+ */
+export function formatSuccess(message, title = "Success") {
+  const escapedTitle = escapeHTML(title);
+  const escapedMessage = escapeHTML(message);
+  return `<b>✅ ${escapedTitle}</b>\n${escapedMessage}`;
+}
+
+/**
+ * Format warning message with HTML styling
+ * @param {string} message - Warning message
+ * @param {string} [title] - Optional warning title (defaults to "Warning")
+ * @returns {string} HTML-formatted warning message
+ */
+export function formatWarning(message, title = "Warning") {
+  const escapedTitle = escapeHTML(title);
+  const escapedMessage = escapeHTML(message);
+  return `<b>⚠️ ${escapedTitle}</b>\n${escapedMessage}`;
+}
+
+/**
+ * Format info message with HTML styling
+ * @param {string} message - Info message
+ * @param {string} [title] - Optional info title
+ * @returns {string} HTML-formatted info message
+ */
+export function formatInfo(message, title = "Info") {
+  const escapedTitle = escapeHTML(title);
+  const escapedMessage = escapeHTML(message);
+  return `<b>ℹ️ ${escapedTitle}</b>\n${escapedMessage}`;
+}
+
+/**
  * Validate alias format (length and character restrictions)
  * Aliases are optional - returns valid if alias is null/undefined
  * @param {string} alias - Alias to validate

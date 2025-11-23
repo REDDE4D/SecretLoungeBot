@@ -103,4 +103,15 @@ router.post("/emit/audit-log", async (req, res) => {
   }
 });
 
+// Emit lobby message (for live chat)
+router.post("/emit/lobby-message", async (req, res) => {
+  try {
+    await socketService.emitLobbyMessage(req.body);
+    res.json({ success: true });
+  } catch (error) {
+    console.error("Error emitting lobby message:", error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

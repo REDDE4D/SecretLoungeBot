@@ -107,11 +107,15 @@ export const PERMISSIONS = {
  */
 export const ROLE_PERMISSIONS = {
   owner: [
+    // Wildcard permission for full access
+    "*",
     // Full access - all permissions (owner has everything)
     ...Object.values(PERMISSIONS),
   ],
 
   admin: [
+    // Wildcard permission for full access
+    "*",
     // Full access - all permissions
     ...Object.values(PERMISSIONS),
   ],

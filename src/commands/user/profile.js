@@ -7,6 +7,7 @@ import { isMod, isAdmin } from "../utils/permissions.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import { formatTimeAgo, formatTimeRemaining } from "../../utils/timeFormat.js";
 import { getUserAchievements, getAchievementStats } from "../../services/achievementService.js";
+import { getKarmaEmoji } from "../../services/karmaService.js";
 
 export const meta = {
   commands: ["profile"],
@@ -93,6 +94,14 @@ export function register(bot) {
       message += `↩️ <b>Replies:</b> ${totalReplies}\n`;
       message += `📝 <b>Text messages:</b> ${totalTextMessages}\n`;
       message += `📸 <b>Media messages:</b> ${totalMediaMessages}\n`;
+
+      // Karma (only show if significant - high or negative)
+      const karma = user.karma || 0;
+      if (karma >= 50 || karma <= -10) {
+        const karmaEmoji = getKarmaEmoji(karma);
+        const karmaDisplay = karmaEmoji ? `${karmaEmoji} ` : "";
+        message += `⚖️ <b>Karma:</b> ${karmaDisplay}${karma}\n`;
+      }
 
       // Leaderboard rank
       const rank = await calculateRank(targetUserId);

@@ -13,6 +13,7 @@ import logsRoutes from "./logs.js";
 import systemRoutes from "./system.js";
 import notificationsRoutes from "./notifications.js";
 import internalRoutes from "./internal.js";
+import chatRoutes from "./chat.js";
 
 const router = express.Router();
 
@@ -52,6 +53,7 @@ router.get("/", (req, res) => {
       logs: "POST /api/logs/*",
       system: "POST /api/system/*",
       notifications: "GET /api/notifications/*",
+      chat: "GET /api/chat/*",
     },
   });
 });
@@ -73,5 +75,6 @@ router.use("/logs", logsRoutes);
 router.use("/system", systemRoutes);
 router.use("/notifications", notificationsRoutes);
 router.use("/internal", internalRoutes);
+router.use("/chat", chatRoutes);
 
 export default router;

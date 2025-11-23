@@ -3,6 +3,8 @@ import { parseDuration } from "../utils/parsers.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import logger from "../../utils/logger.js";
+import { buildMuteDurationSelector, formatDuration } from "../../utils/durationButtons.js";
+import { createPendingAction, completePendingAction, verifyInitiator } from "../../utils/actionState.js";
 
 export const meta = {
   commands: ["mute", "m", "unmute", "um"],
@@ -30,14 +32,29 @@ export function register(bot) {
       const isReply = ctx.message.reply_to_message != null;
 
       if (isReply) {
-        // Single user mute via reply (existing logic)
+        // Single user mute via reply
         const userId = await resolveTargetUser(ctx, null);
         const durationStr = args[0];
+
+        // If no duration provided, show button selector
+        if (!durationStr) {
+          const aliasRaw = await getAlias(userId);
+          const aliasEscaped = escapeMarkdownV2(aliasRaw);
+
+          return ctx.reply(`⏱️ Select mute duration for *${aliasEscaped}*:`, {
+            parse_mode: "MarkdownV2",
+            reply_markup: {
+              inline_keyboard: buildMuteDurationSelector(userId, "mute"),
+            },
+          });
+        }
+
+        // Duration provided via text - validate and apply
         let durationMs = parseDuration(durationStr);
 
-        if (durationStr && !durationMs) {
+        if (!durationMs) {
           return ctx.reply(
-            escapeMarkdownV2("❌ Invalid duration. Use formats like `10m`, `1h`, `2d`."),
+            escapeMarkdownV2("❌ Invalid duration. Use formats like `10m`, `1h`, `2d` or omit duration to see button options."),
             { parse_mode: "MarkdownV2" }
           );
         }
@@ -46,6 +63,7 @@ export function register(bot) {
         const aliasRaw = await getAlias(userId);
         const aliasEscaped = escapeMarkdownV2(aliasRaw);
 
+        logger.logModeration("mute", ctx.from.id, userId, { duration: durationStr });
         return ctx.reply(`🔇 User *${aliasEscaped}* has been muted.`, {
           parse_mode: "MarkdownV2",
         });
@@ -101,15 +119,29 @@ export function register(bot) {
         );
       }
 
-      // Single user - execute immediately
+      // Single user - execute immediately or show duration selector
       if (successful.length === 1) {
         const { userId, resolvedAlias } = successful[0];
+
+        // If no duration provided, show button selector
+        if (!durationStr) {
+          const aliasEscaped = escapeMarkdownV2(resolvedAlias);
+
+          return ctx.reply(`⏱️ Select mute duration for *${aliasEscaped}*:`, {
+            parse_mode: "MarkdownV2",
+            reply_markup: {
+              inline_keyboard: buildMuteDurationSelector(userId, "mute"),
+            },
+          });
+        }
+
+        // Duration provided - execute mute
         await muteUser(userId, durationMs);
-        const duration = durationStr || "permanent";
+        const duration = durationStr;
         const aliasEscaped = escapeMarkdownV2(resolvedAlias);
 
         logger.logModeration("mute", ctx.from.id, userId, { duration });
-        return ctx.reply(`🔇 User *${aliasEscaped}* has been muted.`, {
+        return ctx.reply(`🔇 User *${aliasEscaped}* has been muted for ${duration}.`, {
           parse_mode: "MarkdownV2",
         });
       }
@@ -322,6 +354,40 @@ export function register(bot) {
       logger.error("Bulk mute callback error", { error: err.message, stack: err.stack });
       await ctx.answerCbQuery("❌ An error occurred.");
       await ctx.editMessageText(`❌ Error processing bulk mute: ${err.message}`);
+    }
+  });
+
+  // Callback handler for mute duration selection
+  bot.action(/^mute_dur:([^:]+):(.+)$/, async (ctx) => {
+    try {
+      const targetId = ctx.match[1];
+      const durationSeconds = parseInt(ctx.match[2], 10);
+      const initiatorId = ctx.from.id;
+
+      const targetAlias = await getAlias(targetId);
+
+      // Apply mute
+      if (durationSeconds === 0) {
+        // Permanent mute
+        await muteUser(targetId, Infinity);
+      } else {
+        await muteUser(targetId, durationSeconds * 1000);
+      }
+
+      const durationStr = formatDuration(durationSeconds);
+      await ctx.answerCbQuery(`✅ Muted ${targetAlias} for ${durationStr}`);
+      logger.logModeration("mute", initiatorId, targetId, { duration: durationSeconds });
+
+      const aliasEscaped = escapeMarkdownV2(targetAlias);
+      await ctx.editMessageText(`🔇 User *${aliasEscaped}* has been muted for ${durationStr}.`, {
+        parse_mode: "MarkdownV2",
+      });
+    } catch (err) {
+      logger.error("Mute duration callback error", {
+        error: err.message,
+        stack: err.stack,
+      });
+      await ctx.answerCbQuery("❌ An error occurred");
     }
   });
 

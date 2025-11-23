@@ -16,6 +16,7 @@ import {
   Link as LinkIcon,
   ScrollText,
   Bell,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -25,11 +26,13 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   permission?: string;
+  requireOwnerOrAdmin?: boolean;
 }
 
 const navItems: NavItem[] = [
   { label: 'Overview', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Notifications', href: '/dashboard/notifications', icon: Bell },
+  { label: 'Live Chat', href: '/dashboard/chat', icon: MessageCircle, permission: 'dashboard.access', requireOwnerOrAdmin: true },
   { label: 'Users', href: '/dashboard/users', icon: Users, permission: 'users.view' },
   { label: 'Moderation', href: '/dashboard/moderation', icon: Shield, permission: 'moderation.view_reports' },
   { label: 'Content', href: '/dashboard/content', icon: FileText, permission: 'content.view_filters' },
@@ -93,7 +96,14 @@ export function Sidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          const canAccess = !item.permission || hasPermission(item.permission);
+
+          // Check role-based access for items that require owner/admin
+          let canAccess = true;
+          if (item.requireOwnerOrAdmin) {
+            canAccess = user?.role === 'owner' || user?.role === 'admin';
+          } else if (item.permission) {
+            canAccess = hasPermission(item.permission);
+          }
 
           if (!canAccess) return null;
 

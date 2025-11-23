@@ -516,6 +516,139 @@ Detailed documentation for all bot features and systems.
 
 ## User Features
 
+### Karma System
+
+**Purpose**: Community-driven reputation system allowing users to give and receive karma points through message interactions.
+
+**Files**:
+- `src/models/Karma.js` - Karma transaction model
+- `src/services/karmaService.js` - Karma business logic
+- `src/utils/karmaDetection.js` - Karma trigger detection
+- `src/commands/user/karma.js` - Karma commands
+
+**How It Works**:
+
+1. **Giving Karma**:
+   - User replies to a message with a karma trigger (+1, -1, 👍, 👎, "thanks", etc.)
+   - System validates: must be reply, not to self, not to bot, valid trigger
+   - Checks cooldown (24h per user-pair) and daily limit (10 karma/day)
+   - Updates receiver's karma in User model
+   - Records transaction in Karma model for audit trail
+   - Checks achievements for both giver and receiver
+
+2. **Karma Triggers**:
+   - **Text**: `+1`, `-1`, `++`, `--` (explicit karma)
+   - **Emojis**: 👍 (+1), 👎 (-1), ⬆️ (+1), ⬇️ (-1)
+   - **Positive words**: thanks, helpful, great, awesome, amazing, excellent, perfect, thank you, thx, ty (all +1)
+   - **Custom emojis**: ⭐, 🌟, ❤️, 💖, 🔥, ✨ (all +1)
+
+3. **Anti-Abuse Protection**:
+   - **Per-user cooldown**: Can only give karma to same person once per 24 hours
+   - **Daily limit**: Each user can give maximum 10 karma points per day total
+   - **Daily reset**: Counters reset at midnight based on user's last reset timestamp
+   - **Self-karma blocked**: Cannot give karma to own messages
+   - **Bot protection**: Cannot give karma to bot messages
+
+4. **Karma Levels & Badges**:
+   - **Legendary** (⭐): 100+ karma
+   - **High** (🌟): 50-99 karma
+   - **Neutral**: -9 to 49 karma (no badge shown)
+   - **Negative** (⚠️): -10 to -49 karma
+   - **Very Negative** (💀): -50 or below karma
+   - Badges displayed as emoji prefix before username in all relayed messages
+   - Only high (≥50) and negative (≤-10) karma show badges (minimal display)
+
+5. **Karma Display**:
+   - **In messages**: Emoji badge prefix for qualifying karma levels
+   - **In profiles**: Shown when karma ≥50 or ≤-10
+   - **Commands**: `/karma` for detailed stats, `/karmatop` for leaderboard
+
+**Commands**:
+
+#### `/karma [alias|reply]`
+Shows detailed karma statistics:
+- Current karma points and emoji badge
+- Karma level (legendary, high, negative, etc.)
+- Leaderboard rank among all users
+- Number of times received/given karma
+- Top 3 karma givers to this user
+- Top 3 karma recipients from this user
+- Daily karma remaining (for own karma only)
+- How-to guide for giving karma (for own karma only)
+
+#### `/karmatop`
+Displays top 10 users by karma:
+- Medals (🥇🥈🥉) for top 3
+- Karma emoji badges for high achievers
+- Rank, alias, and karma points
+
+**Database Schema**:
+
+```javascript
+// User model additions
+{
+  karma: Number (default 0, indexed),
+  karmaGivenToday: Number (default 0),
+  lastKarmaReset: Date (default now)
+}
+
+// Karma transaction model
+{
+  giverId: String (indexed),
+  receiverId: String (indexed),
+  amount: Number (1 or -1),
+  messageId: Number,
+  trigger: String,
+  createdAt: Date (indexed)
+}
+```
+
+**Indexes**:
+- `User.karma` - Fast leaderboard queries
+- `Karma.giverId + receiverId + createdAt` - Cooldown checks
+- `Karma.giverId + createdAt` - Daily limit checks
+- `Karma.receiverId + createdAt` - Karma history queries
+
+**Achievements**:
+Seven karma-based achievements with automatic unlocking:
+- **Helpful Hand** (🤝 Bronze): Earn 10 karma
+- **Community Favorite** (🌟 Silver): Earn 50 karma
+- **Legend** (⭐ Gold): Earn 100 karma
+- **Karma Millionaire** (💎 Platinum): Earn 500 karma
+- **Generous Spirit** (🎁 Bronze): Give 25 karma to others
+- **Controversial** (⚠️ Bronze Secret): Receive -10 karma
+- **Reformed** (✨ Silver Secret): Go from -50 to +50 karma
+
+**Integration Points**:
+- **Relay handler** (`src/handlers/relayHandler.js:395-407`): Detects karma triggers in messages
+- **Standard message relay** (`src/relay/standardMessage.js:127-134`): Adds karma emoji to headers
+- **Media group relay** (`src/relay/mediaGroup.js:225-232`): Adds karma emoji to album headers
+- **Profile command** (`src/commands/user/profile.js:98-104`): Displays karma in profiles
+- **Achievement service** (`src/services/achievementService.js:327-399`): Defines and checks karma achievements
+
+**Technical Details**:
+- Fire-and-forget processing (non-blocking)
+- Transaction audit trail in Karma model
+- Daily reset logic checks date change (not just 24h window)
+- Karma calculation uses absolute value for "given" counting
+- Graceful error handling with console logging
+- No user notification on karma received (silent system)
+
+**Performance Optimizations**:
+- Compound indexes for fast cooldown queries
+- Aggregation pipelines for karma statistics
+- Lean queries for read-only operations
+- Cached karma emoji calculation (no DB lookup)
+
+**Privacy & Security**:
+- No notification to receiver when karma is given (prevents gaming)
+- Cooldown prevents spam/harassment
+- Daily limit prevents coordinated manipulation
+- Transaction log enables moderation if needed
+- Cannot see who gave specific karma (top givers shown in aggregate only)
+
+---
+
 ### User Blocking
 
 **Purpose**: Personal blocking to hide specific users' messages.

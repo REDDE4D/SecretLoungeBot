@@ -7,4 +7,10 @@ if (!process.env.BOT_TOKEN) {
 
 const bot = new Telegraf(process.env.BOT_TOKEN);
 
+// Export bot instance (default export for backward compatibility)
 export default bot;
+
+// Named export for dashboard API
+export function getBotInstance() {
+  return bot;
+}

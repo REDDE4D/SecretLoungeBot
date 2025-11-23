@@ -384,3 +384,34 @@ export async function getRoomClientsCount(room) {
     return 0;
   }
 }
+
+/**
+ * Emit lobby message to admin dashboard (live chat)
+ * @param {Object} message - Message object
+ */
+export function emitLobbyMessage(message) {
+  try {
+    const io = getIoInstance();
+
+    const payload = {
+      id: message.id,
+      userId: message.userId,
+      alias: message.alias,
+      icon: message.icon,
+      role: message.role,
+      karma: message.karma || 0,
+      type: message.type,
+      text: message.text,
+      fileId: message.fileId,
+      albumId: message.albumId,
+      timestamp: message.timestamp || new Date().toISOString(),
+    };
+
+    // Send to admin room only (since chat is admin-only feature)
+    io.to("admin-room").emit("chat:message", payload);
+
+    console.log(`💬 Lobby message broadcast to dashboard: ${message.alias}`);
+  } catch (error) {
+    console.error("Error emitting lobby message:", error);
+  }
+}

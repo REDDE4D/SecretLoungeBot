@@ -201,12 +201,12 @@ export function register(bot) {
   });
 
   // Handle poll votes via callback queries
-  bot.on("callback_query", async (ctx) => {
+  bot.on("callback_query", async (ctx, next) => {
     try {
       const callbackData = ctx.callbackQuery.data;
 
       if (!callbackData || !callbackData.startsWith("poll:")) {
-        return;
+        return next(); // Pass to next handler if not a poll callback
       }
 
       const [, pollId, optionIndex] = callbackData.split(":");

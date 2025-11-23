@@ -16,12 +16,12 @@ export async function resolveTargetUser(ctx, aliasOrNothing) {
   const alias = aliasOrNothing?.trim();
   if (alias) {
     const id = await findUserIdByAlias(alias);
-    if (!id) throw new Error("❌ Alias not found.");
+    if (!id) throw new Error("Alias not found.");
     return id;
   }
 
   const replyId = await resolveTargetFromContext(ctx);
   if (replyId) return replyId;
 
-  throw new Error("❌ Reply to a message or provide alias.");
+  throw new Error("Reply to a message or provide an alias.");
 }

@@ -1,5 +1,5 @@
 import { User } from "../../models/User.js";
-import { escapeMarkdownV2 } from "../../utils/sanitize.js";
+import { escapeHTML, formatError, formatSuccess, formatInfo } from "../../utils/sanitize.js";
 
 export const meta = {
   commands: ["blocked"],
@@ -20,10 +20,12 @@ export function register(botInstance) {
         // Remove all blocked users from database
         const result = await User.deleteMany({ blockedBot: true });
 
-        const escapedCount = escapeMarkdownV2(result.deletedCount.toString());
         return ctx.reply(
-          `🧹 Cleaned up ${escapedCount} blocked users from database\\.`,
-          { parse_mode: "MarkdownV2" }
+          formatSuccess(
+            `Cleaned up ${result.deletedCount} blocked users from database.`,
+            "Cleanup Complete"
+          ),
+          { parse_mode: "HTML" }
         );
       }
 
@@ -33,17 +35,18 @@ export function register(botInstance) {
         .lean();
 
       if (blockedUsers.length === 0) {
-        return ctx.reply("✅ No users have blocked the bot.", {
-          parse_mode: "MarkdownV2",
-        });
+        return ctx.reply(
+          formatSuccess("No users have blocked the bot.", "All Clear"),
+          { parse_mode: "HTML" }
+        );
       }
 
       // Build message with blocked users list
-      let message = `🚫 *Users Who Blocked Bot* \\(${escapeMarkdownV2(blockedUsers.length.toString())}\\)\n\n`;
+      let message = `<b>🚫 Users Who Blocked Bot (${blockedUsers.length})</b>\n\n`;
 
       for (const user of blockedUsers) {
-        const alias = escapeMarkdownV2(user.alias || "Unknown");
-        const userId = escapeMarkdownV2(user._id);
+        const alias = escapeHTML(user.alias || "Unknown");
+        const userId = escapeHTML(user._id);
         const blockedDate = user.blockedAt
           ? new Date(user.blockedAt).toLocaleDateString("en-US", {
               month: "short",
@@ -51,25 +54,27 @@ export function register(botInstance) {
               year: "numeric",
             })
           : "Unknown";
-        const escapedDate = escapeMarkdownV2(blockedDate);
 
-        message += `• ${alias} \\(\`${userId}\`\\)\n`;
-        message += `  Blocked: ${escapedDate}\n`;
+        message += `• <b>${alias}</b> (<code>${userId}</code>)\n`;
+        message += `  Blocked: ${blockedDate}\n`;
 
         // Check if they were in lobby when they blocked
         if (user.inLobby) {
-          message += `  ⚠️ Still marked as in lobby \\(data inconsistency\\)\n`;
+          message += `  ⚠️ <i>Still marked as in lobby (data inconsistency)</i>\n`;
         }
 
         message += `\n`;
       }
 
-      message += `\nUse \`/blocked cleanup\` to remove all blocked users from database\\.`;
+      message += `\n<i>Use <code>/blocked cleanup</code> to remove all blocked users from database.</i>`;
 
-      ctx.reply(message, { parse_mode: "MarkdownV2" });
+      ctx.reply(message, { parse_mode: "HTML" });
     } catch (err) {
       console.error("Error in /blocked command:", err);
-      ctx.reply("❌ Error retrieving blocked users. Check console for details.");
+      ctx.reply(
+        formatError("Could not retrieve blocked users. Check console for details."),
+        { parse_mode: "HTML" }
+      );
     }
   });
 }

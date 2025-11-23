@@ -3,6 +3,8 @@ import { parseDuration } from "../utils/parsers.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import logger from "../../utils/logger.js";
+import { buildBanDurationSelector, formatDuration } from "../../utils/durationButtons.js";
+import { createPendingAction, completePendingAction, verifyInitiator } from "../../utils/actionState.js";
 
 export const meta = {
   commands: ["ban", "b", "unban", "ub"],
@@ -30,14 +32,29 @@ export function register(bot) {
       const isReply = ctx.message.reply_to_message != null;
 
       if (isReply) {
-        // Single user ban via reply (existing logic)
+        // Single user ban via reply
         const userId = await resolveTargetUser(ctx, null);
         const durationStr = args[0];
+
+        // If no duration provided, show button selector
+        if (!durationStr) {
+          const aliasRaw = await getAlias(userId);
+          const aliasEscaped = escapeMarkdownV2(aliasRaw);
+
+          return ctx.reply(`⏱️ Select ban duration for *${aliasEscaped}*:`, {
+            parse_mode: "MarkdownV2",
+            reply_markup: {
+              inline_keyboard: buildBanDurationSelector(userId, "ban"),
+            },
+          });
+        }
+
+        // Duration provided via text - validate and apply
         let durationMs = parseDuration(durationStr);
 
-        if (durationStr && !durationMs) {
+        if (!durationMs) {
           return ctx.reply(
-            escapeMarkdownV2("❌ Invalid duration. Use formats like `10m`, `1h`, `2d`."),
+            escapeMarkdownV2("❌ Invalid duration. Use formats like `10m`, `1h`, `2d` or omit duration to see button options."),
             { parse_mode: "MarkdownV2" }
           );
         }
@@ -45,8 +62,9 @@ export function register(bot) {
         await banUser(userId, durationMs);
         const aliasRaw = await getAlias(userId);
         const aliasEscaped = escapeMarkdownV2(aliasRaw);
-        const duration = escapeMarkdownV2(durationStr || "permanent");
+        const duration = escapeMarkdownV2(durationStr);
 
+        logger.logModeration("ban", ctx.from.id, userId, { duration: durationStr });
         return ctx.reply(`✅ Banned *${aliasEscaped}* for *${duration}*`, {
           parse_mode: "MarkdownV2",
         });
@@ -103,11 +121,25 @@ export function register(bot) {
         );
       }
 
-      // Single user - execute immediately
+      // Single user - execute immediately or show duration selector
       if (successful.length === 1) {
         const { userId, resolvedAlias } = successful[0];
+
+        // If no duration provided, show button selector
+        if (!durationStr) {
+          const aliasEscaped = escapeMarkdownV2(resolvedAlias);
+
+          return ctx.reply(`⏱️ Select ban duration for *${aliasEscaped}*:`, {
+            parse_mode: "MarkdownV2",
+            reply_markup: {
+              inline_keyboard: buildBanDurationSelector(userId, "ban"),
+            },
+          });
+        }
+
+        // Duration provided - execute ban
         await banUser(userId, durationMs);
-        const duration = durationStr || "permanent";
+        const duration = durationStr;
         const aliasEscaped = escapeMarkdownV2(resolvedAlias);
         const durationEscaped = escapeMarkdownV2(duration);
 
@@ -325,6 +357,41 @@ export function register(bot) {
       logger.error("Bulk ban callback error", { error: err.message, stack: err.stack });
       await ctx.answerCbQuery("❌ An error occurred.");
       await ctx.editMessageText(`❌ Error processing bulk ban: ${err.message}`);
+    }
+  });
+
+  // Callback handler for ban duration selection
+  bot.action(/^ban_dur:([^:]+):(.+)$/, async (ctx) => {
+    try {
+      const targetId = ctx.match[1];
+      const durationSeconds = parseInt(ctx.match[2], 10);
+      const initiatorId = ctx.from.id;
+
+      const targetAlias = await getAlias(targetId);
+
+      // Apply ban
+      if (durationSeconds === 0) {
+        // Permanent ban
+        await banUser(targetId, Infinity);
+      } else {
+        await banUser(targetId, durationSeconds * 1000);
+      }
+
+      const durationStr = formatDuration(durationSeconds);
+      await ctx.answerCbQuery(`✅ Banned ${targetAlias} for ${durationStr}`);
+      logger.logModeration("ban", initiatorId, targetId, { duration: durationSeconds });
+
+      const aliasEscaped = escapeMarkdownV2(targetAlias);
+      const durationEscaped = escapeMarkdownV2(durationStr);
+      await ctx.editMessageText(`✅ Banned *${aliasEscaped}* for *${durationEscaped}*`, {
+        parse_mode: "MarkdownV2",
+      });
+    } catch (err) {
+      logger.error("Ban duration callback error", {
+        error: err.message,
+        stack: err.stack,
+      });
+      await ctx.answerCbQuery("❌ An error occurred");
     }
   });
 

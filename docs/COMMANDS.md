@@ -71,6 +71,36 @@ View your personal permissions.
 - **Usage**: `/myperms`
 - **Description**: Lists all your active permissions including role-based and custom permissions.
 
+### Karma & Social
+
+#### `/karma [alias|reply]`
+View karma statistics and leaderboard rank.
+- **Usage**: `/karma` or `/karma SomeUser` or reply to a message with `/karma`
+- **Description**: Shows detailed karma statistics including:
+  - Current karma points and level
+  - Leaderboard rank
+  - Karma received/given counts
+  - Top karma givers and recipients
+  - Daily remaining karma to give (10 per day)
+- **How to give karma**: Reply to any message with:
+  - Text triggers: `+1`, `-1`, `++`, `--`
+  - Emoji triggers: 👍, 👎, ⬆️, ⬇️
+  - Positive words: `thanks`, `helpful`, `great`, `awesome`, `amazing`, `excellent`, `perfect`, `thank you`, `thx`, `ty`
+  - Custom emojis: ⭐, 🌟, ❤️, 💖, 🔥, ✨
+- **Limits**:
+  - Per-user cooldown: 24 hours (can give karma to same person once per day)
+  - Daily limit: 10 karma points total per day
+- **Karma badges**: Users with high karma (≥50) or negative karma (≤-10) display emoji badges next to their name:
+  - ⭐ Legendary (100+)
+  - 🌟 High (50-99)
+  - ⚠️ Negative (-10 to -49)
+  - 💀 Very Negative (-50 or below)
+
+#### `/karmatop`
+View karma leaderboard.
+- **Usage**: `/karmatop`
+- **Description**: Shows top 10 users by karma with medals (🥇🥈🥉) for top 3 and karma badges for high achievers.
+
 ### Communication
 
 #### `/s <alias> <message>` or `/send`

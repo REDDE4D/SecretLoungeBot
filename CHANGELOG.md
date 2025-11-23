@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Comprehensive Karma System**
+  - New `Karma` transaction model tracking all karma interactions between users
+  - Karma tracking fields added to User model (`karma`, `karmaGivenToday`, `lastKarmaReset`)
+  - Multiple karma triggers: +1/-1 text, 👍/👎 emojis, positive words (thanks, helpful, great), custom emojis (⭐, ❤️, 🔥)
+  - Reply-based karma system - users give karma by replying to messages with triggers
+  - Anti-abuse protection with per-user cooldown (24h) and daily limit (10 karma/day)
+  - Karma emoji badges displayed next to usernames for high (≥50) and negative (≤-10) karma
+  - Karma level tiers: legendary (⭐ 100+), high (🌟 50+), negative (⚠️ -10), very negative (💀 -50)
+  - `/karma [user]` command to view detailed karma statistics and leaderboard rank
+  - `/karmatop` command showing top 10 users by karma
+  - Karma display in user profiles (only shown for significant karma levels)
+  - Karma statistics including received/given counts and top givers/recipients
+  - 7 new karma-based achievements:
+    - Helpful Hand (🤝): Earn 10 karma
+    - Community Favorite (🌟): Earn 50 karma
+    - Legend (⭐): Earn 100 karma
+    - Karma Millionaire (💎): Earn 500 karma
+    - Generous Spirit (🎁): Give 25 karma to others
+    - Controversial (⚠️): Receive -10 karma (secret)
+    - Reformed (✨): Go from -50 to +50 karma (secret)
+  - Automatic achievement checking when karma changes
+  - Database indexes for efficient karma queries and cooldown checks
+  - Karma transaction audit trail for transparency and debugging
+
 ## [2.4.0] - 2025-01-14
 
 ### Added

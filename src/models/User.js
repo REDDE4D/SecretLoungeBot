@@ -12,6 +12,10 @@ const userSchema = new mongoose.Schema({
     fallback: { type: String, default: "👤" },
   },
   inLobby: { type: Boolean, default: false, index: true },
+  // Karma system
+  karma: { type: Number, default: 0, index: true },
+  karmaGivenToday: { type: Number, default: 0 },
+  lastKarmaReset: { type: Date, default: Date.now },
   preferences: { type: Map, of: String, default: {} },
   role: {
     type: String,

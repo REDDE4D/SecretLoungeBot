@@ -11,6 +11,8 @@ import RelayedMessage from "../models/RelayedMessage.js";
 import MessageReaction from "../models/MessageReaction.js";
 import { checkMessageForBlockedLinks, formatBlockedLinkMessage } from "../utils/linkDetection.js";
 import { checkAchievements } from "../services/achievementService.js";
+import { extractKarmaFromMessage } from "../utils/karmaDetection.js";
+import { processKarmaTrigger } from "../services/karmaService.js";
 
 // Track last message time for slowmode
 const lastMessageTime = new Map(); // userId -> timestamp
@@ -383,6 +385,38 @@ export default function registerHandlers(bot) {
         await ctx.reply(message);
         return;
       }
+    }
+
+    // Check for karma triggers in replies BEFORE relaying
+    // If karma is detected, process it and don't relay the message
+    const karmaData = await extractKarmaFromMessage(ctx);
+    console.log("Karma detection check:", {
+      hasReply: !!ctx.message?.reply_to_message,
+      messageText: ctx.message?.text,
+      karmaData: karmaData,
+    });
+
+    if (karmaData) {
+      console.log("Karma detected! Processing:", karmaData);
+      try {
+        const result = await processKarmaTrigger(
+          karmaData.giverId,
+          karmaData.receiverId,
+          karmaData.messageId,
+          karmaData.trigger,
+          karmaData.amount
+        );
+        console.log("Karma processed successfully:", result);
+
+        // Karma was processed (success or error), don't relay the trigger message
+        // The processKarmaTrigger function will send appropriate notifications
+        return;
+      } catch (err) {
+        console.error("Karma processing error:", err.message, err.stack);
+        // On error, continue with normal relay
+      }
+    } else {
+      console.log("No karma detected, continuing with relay");
     }
 
     // Track message for future spam detection

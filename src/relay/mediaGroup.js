@@ -3,6 +3,8 @@ import { getLobbyUsers, getRole } from "../users/index.js";
 import RelayedMessage from "../models/RelayedMessage.js";
 import Block from "../models/Block.js";
 import { Preferences } from "../models/Preferences.js";
+import { User } from "../models/User.js";
+import { getKarmaEmoji } from "../services/karmaService.js";
 import {
   linkRelay,
   findRelayedMessageId,
@@ -220,8 +222,14 @@ async function relayGroup(id, ctx, recipientsOverride) {
         }
       }
 
-      // Build header with icon, alias, and role badge
-      const header = `${renderIconHTML(g.senderIcon)} <b>${escapeHTML(g.senderAlias)}</b>${roleBadge}`;
+      // Get sender's karma emoji (if applicable)
+      const senderUser = await User.findById(g.senderId).lean();
+      const senderKarma = senderUser?.karma || 0;
+      const karmaEmoji = getKarmaEmoji(senderKarma);
+      const karmaPrefix = karmaEmoji ? `${karmaEmoji} ` : "";
+
+      // Build header with karma emoji, icon, alias, and role badge
+      const header = `${karmaPrefix}${renderIconHTML(g.senderIcon)} <b>${escapeHTML(g.senderAlias)}</b>${roleBadge}`;
 
       // Build InputMedia array with header on first item
       const mediaGroup = g.items.map((item, i) => {
@@ -296,6 +304,36 @@ async function relayGroup(id, ctx, recipientsOverride) {
         err?.response?.description || err?.message || err
       );
     }
+  }
+
+  // Broadcast media group to dashboard live chat (fire-and-forget)
+  try {
+    // Get sender user data for karma/role
+    const senderUser = await User.findById(g.senderId).lean();
+    const senderRole = await getRole(g.senderId);
+
+    // Get first item caption (media groups show first caption)
+    const firstCaption = g.items[0]?.caption || "";
+
+    await fetch("http://localhost:3001/api/internal/emit/lobby-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: g.originalMsgId,
+        userId: g.senderId,
+        alias: g.senderAlias,
+        icon: g.senderIcon,
+        role: senderRole,
+        karma: senderUser?.karma || 0,
+        type: "media_group",
+        text: firstCaption,
+        fileId: g.items[0]?.media,
+        albumId: g.albumId,
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch((err) => console.error("Error broadcasting to dashboard:", err.message));
+  } catch (err) {
+    console.error("Error broadcasting media group to dashboard:", err.message);
   }
 
   mediaGroupBuffer.delete(id);

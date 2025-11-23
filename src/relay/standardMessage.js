@@ -3,6 +3,8 @@ import { getLobbyUsers, getRole } from "../users/index.js";
 import RelayedMessage from "../models/RelayedMessage.js";
 import Block from "../models/Block.js";
 import { Preferences } from "../models/Preferences.js";
+import { User } from "../models/User.js";
+import { getKarmaEmoji } from "../services/karmaService.js";
 import {
   linkRelay,
   findRelayedMessageId,
@@ -122,8 +124,14 @@ export async function relayStandardMessage(
     }
   }
 
-  // Build header with icon, alias, and role badge
-  const header = `${renderIconHTML(senderIcon)} <b>${escapeHTML(senderAlias)}</b>${roleBadge}`;
+  // Get sender's karma emoji (if applicable)
+  const senderUser = await User.findById(senderId).lean();
+  const senderKarma = senderUser?.karma || 0;
+  const karmaEmoji = getKarmaEmoji(senderKarma);
+  const karmaPrefix = karmaEmoji ? `${karmaEmoji} ` : "";
+
+  // Build header with karma emoji, icon, alias, and role badge
+  const header = `${karmaPrefix}${renderIconHTML(senderIcon)} <b>${escapeHTML(senderAlias)}</b>${roleBadge}`;
 
   for (const uid of recipients) {
     try {
@@ -270,5 +278,48 @@ export async function relayStandardMessage(
         originalMsgId: m.message_id,
       });
     }
+  }
+
+  // Broadcast message to dashboard live chat (fire-and-forget)
+  try {
+    // Get reply info if this is a reply
+    let replyToAlias = null;
+    let replyToText = null;
+    if (repliedOriginal) {
+      try {
+        const repliedUser = await User.findById(repliedOriginal.originalUserId).lean();
+        const repliedMsg = await RelayedMessage.findOne({
+          userId: repliedOriginal.originalUserId,
+          originalMsgId: repliedOriginal.originalMsgId
+        }).lean();
+
+        if (repliedUser) replyToAlias = repliedUser.alias;
+        if (repliedMsg) replyToText = repliedMsg.text?.substring(0, 100) || "[Media]";
+      } catch (err) {
+        console.error("Error fetching reply info:", err.message);
+      }
+    }
+
+    await fetch("http://localhost:3001/api/internal/emit/lobby-message", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: m.message_id,
+        userId: senderId,
+        alias: senderAlias,
+        icon: senderIcon,
+        role: senderRole,
+        karma: senderKarma,
+        type,
+        text: m.caption || (hasText ? m.text : ""),
+        fileId: media,
+        albumId: null,
+        replyToAlias,
+        replyToText,
+        timestamp: new Date().toISOString(),
+      }),
+    }).catch((err) => console.error("Error broadcasting to dashboard:", err.message));
+  } catch (err) {
+    console.error("Error broadcasting to dashboard:", err.message);
   }
 }
