@@ -1,4 +1,11 @@
-import { getAlias, addWarning, clearWarnings, getWarnings, removeWarning, banUser } from "../../users/index.js";
+import {
+  getAlias,
+  addWarning,
+  clearWarnings,
+  getWarnings,
+  removeWarning,
+  banUser,
+} from "../../users/index.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import logger from "../../utils/logger.js";
@@ -8,7 +15,8 @@ export const meta = {
   category: "mod",
   roleRequired: ["mod", "admin"],
   description: "Issue warnings, view warnings, or clear warnings",
-  usage: "/warn <alias|reply> [reason] | /warnings [alias|reply] | /removewarning <warningId> | /clearwarns <alias|reply>",
+  usage:
+    "/warn <alias|reply> [reason] | /warnings [alias|reply] | /removewarning <warningId> | /clearwarns <alias|reply>",
   showInMenu: false,
 };
 
@@ -17,12 +25,29 @@ export function register(bot) {
   bot.command("warn", async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
-      const alias = args[0];
-      const reason = args.slice(1).join(" ") || null;
+      const isReply = ctx.message.reply_to_message != null;
 
-      const userId = await resolveTargetUser(ctx, alias);
+      let userId;
+      let reason;
+
+      if (isReply) {
+        // Reply mode: all args are the reason
+        userId = await resolveTargetUser(ctx, null);
+        reason = args.join(" ") || null;
+      } else {
+        // Alias mode: first arg is alias, rest is reason
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+        reason = args.slice(1).join(" ") || null;
+      }
+
       const issuerAlias = await getAlias(ctx.from.id);
-      const warnCount = await addWarning(userId, ctx.from.id, issuerAlias, reason);
+      const warnCount = await addWarning(
+        userId,
+        ctx.from.id,
+        issuerAlias,
+        reason
+      );
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);
 
@@ -40,7 +65,9 @@ export function register(bot) {
       // Auto-ban on 3 warnings
       if (warnCount >= 3) {
         await banUser(userId);
-        logger.logModeration("auto_ban", ctx.from.id, userId, { reason: "3 warnings" });
+        logger.logModeration("auto_ban", ctx.from.id, userId, {
+          reason: "3 warnings",
+        });
         ctx.reply(
           `❌ User *${aliasEscaped}* has been permanently banned (3 warnings)\\.`,
           { parse_mode: "MarkdownV2" }
@@ -57,10 +84,19 @@ export function register(bot) {
   bot.command("warnings", async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
-      const alias = args[0];
+      const isReply = ctx.message.reply_to_message != null;
 
-      // If no alias provided and not a reply, show error
-      const userId = await resolveTargetUser(ctx, alias);
+      let userId;
+
+      if (isReply) {
+        // Reply mode: no alias needed
+        userId = await resolveTargetUser(ctx, null);
+      } else {
+        // Alias mode: first arg is alias
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+      }
+
       const warnings = await getWarnings(userId);
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);
@@ -82,7 +118,9 @@ export function register(bot) {
           minute: "2-digit",
         });
         message += `${index + 1}\\. *ID:* \`${warning._id}\`\n`;
-        message += `   *Issued by:* ${escapeMarkdownV2(warning.issuedByAlias)}\n`;
+        message += `   *Issued by:* ${escapeMarkdownV2(
+          warning.issuedByAlias
+        )}\n`;
         message += `   *Date:* ${escapeMarkdownV2(date)}\n`;
         if (warning.reason) {
           message += `   *Reason:* ${escapeMarkdownV2(warning.reason)}\n`;
@@ -109,9 +147,12 @@ export function register(bot) {
       const warningId = args[0];
 
       if (!warningId) {
-        ctx.reply("❌ Please provide a warning ID\\. Use /warnings to view warning IDs\\.", {
-          parse_mode: "MarkdownV2",
-        });
+        ctx.reply(
+          "❌ Please provide a warning ID\\. Use /warnings to view warning IDs\\.",
+          {
+            parse_mode: "MarkdownV2",
+          }
+        );
         return;
       }
 
@@ -121,7 +162,7 @@ export function register(bot) {
 
       logger.logModeration("remove_warning", ctx.from.id, result.userId, {
         warningId,
-        remainingCount: result.remainingCount
+        remainingCount: result.remainingCount,
       });
 
       ctx.reply(
@@ -131,9 +172,12 @@ export function register(bot) {
         }
       );
     } catch (err) {
-      ctx.reply(escapeMarkdownV2(err.message || "❌ Could not remove warning."), {
-        parse_mode: "MarkdownV2",
-      });
+      ctx.reply(
+        escapeMarkdownV2(err.message || "❌ Could not remove warning."),
+        {
+          parse_mode: "MarkdownV2",
+        }
+      );
     }
   });
 
@@ -141,9 +185,19 @@ export function register(bot) {
   bot.command("clearwarns", async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
-      const alias = args[0];
+      const isReply = ctx.message.reply_to_message != null;
 
-      const userId = await resolveTargetUser(ctx, alias);
+      let userId;
+
+      if (isReply) {
+        // Reply mode: no alias needed
+        userId = await resolveTargetUser(ctx, null);
+      } else {
+        // Alias mode: first arg is alias
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+      }
+
       await clearWarnings(userId);
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);

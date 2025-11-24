@@ -1,5 +1,10 @@
 import { getAlias, setRole } from "../../users/index.js";
-import { escapeHTML, formatError, formatWarning, formatInfo } from "../../utils/sanitize.js";
+import {
+  escapeHTML,
+  formatError,
+  formatWarning,
+  formatInfo,
+} from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import logger from "../../utils/logger.js";
 
@@ -34,36 +39,44 @@ Type <code>/help</code> for more information.
       await ctx.reply(deprecationNotice, { parse_mode: "HTML" });
 
       const args = ctx.message.text.trim().split(" ").slice(1);
+      const isReply = ctx.message.reply_to_message != null;
 
-      // First arg might be alias or role (if replying)
-      const aliasOrRole = args[0];
+      let userId;
+      let roleName;
 
-      // Try to resolve user (by alias or reply)
-      const userId = await resolveTargetUser(ctx, aliasOrRole);
-
-      // Determine where role parameter is
-      // If we used alias, args[1] is role
-      // If we used reply, args[0] is role
-      const hasAlias = aliasOrRole && aliasOrRole.trim().length > 0;
-      const roleName = hasAlias ? args[1] : args[0];
+      if (isReply) {
+        // Reply mode: first arg is role
+        userId = await resolveTargetUser(ctx, null);
+        roleName = args[0];
+      } else {
+        // Alias mode: first arg is alias, second is role
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+        roleName = args[1];
+      }
 
       if (!["admin", "mod"].includes(roleName)) {
         return ctx.reply(
-          formatError("Please specify a valid role: admin or mod", "Invalid Usage"),
+          formatError(
+            "Please specify a valid role: admin or mod",
+            "Invalid Usage"
+          ),
           { parse_mode: "HTML" }
         );
       }
 
       const result = await setRole(userId, roleName);
 
-      logger.logModeration("promote", ctx.from.id, userId, { role: roleName, deprecated: true });
+      logger.logModeration("promote", ctx.from.id, userId, {
+        role: roleName,
+        deprecated: true,
+      });
 
       ctx.reply(escapeHTML(result), { parse_mode: "HTML" });
     } catch (err) {
-      ctx.reply(
-        formatError(err.message || "Could not resolve user."),
-        { parse_mode: "HTML" }
-      );
+      ctx.reply(formatError(err.message || "Could not resolve user."), {
+        parse_mode: "HTML",
+      });
     }
   });
 
@@ -87,19 +100,28 @@ Type <code>/help</code> for more information.
       await ctx.reply(deprecationNotice, { parse_mode: "HTML" });
 
       const args = ctx.message.text.trim().split(" ").slice(1);
-      const aliasOrNothing = args[0];
+      const isReply = ctx.message.reply_to_message != null;
 
-      const userId = await resolveTargetUser(ctx, aliasOrNothing);
+      let userId;
+
+      if (isReply) {
+        // Reply mode: no alias needed
+        userId = await resolveTargetUser(ctx, null);
+      } else {
+        // Alias mode: first arg is alias
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+      }
+
       const result = await setRole(userId, null);
 
       logger.logModeration("demote", ctx.from.id, userId, { deprecated: true });
 
       ctx.reply(escapeHTML(result), { parse_mode: "HTML" });
     } catch (err) {
-      ctx.reply(
-        formatError(err.message || "Could not resolve user."),
-        { parse_mode: "HTML" }
-      );
+      ctx.reply(formatError(err.message || "Could not resolve user."), {
+        parse_mode: "HTML",
+      });
     }
   });
 }

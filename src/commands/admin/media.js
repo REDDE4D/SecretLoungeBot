@@ -1,10 +1,23 @@
-import { getAlias, getAllAliases, restrictMedia, unrestrictMedia } from "../../users/index.js";
+import {
+  getAlias,
+  getAllAliases,
+  restrictMedia,
+  unrestrictMedia,
+} from "../../users/index.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import logger from "../../utils/logger.js";
 
 export const meta = {
-  commands: ["restrictmedia", "rm", "unrestrictmedia", "urm", "debugmedia", "debuglist", "debugcopy"],
+  commands: [
+    "restrictmedia",
+    "rm",
+    "unrestrictmedia",
+    "urm",
+    "debugmedia",
+    "debuglist",
+    "debugcopy",
+  ],
   category: "admin",
   roleRequired: "admin",
   description: "Manage media restrictions and debug relayed media",
@@ -17,9 +30,19 @@ export function register(bot) {
   bot.command(["restrictmedia", "rm"], async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
-      const alias = args[0];
+      const isReply = ctx.message.reply_to_message != null;
 
-      const userId = await resolveTargetUser(ctx, alias);
+      let userId;
+
+      if (isReply) {
+        // Reply mode: no alias needed
+        userId = await resolveTargetUser(ctx, null);
+      } else {
+        // Alias mode: first arg is alias
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+      }
+
       await restrictMedia(userId);
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);
@@ -40,9 +63,19 @@ export function register(bot) {
   bot.command(["unrestrictmedia", "urm"], async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
-      const alias = args[0];
+      const isReply = ctx.message.reply_to_message != null;
 
-      const userId = await resolveTargetUser(ctx, alias);
+      let userId;
+
+      if (isReply) {
+        // Reply mode: no alias needed
+        userId = await resolveTargetUser(ctx, null);
+      } else {
+        // Alias mode: first arg is alias
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+      }
+
       await unrestrictMedia(userId);
       const aliasRaw = await getAlias(userId);
       const aliasEscaped = escapeMarkdownV2(aliasRaw);
@@ -62,9 +95,14 @@ export function register(bot) {
   // Debug media handler - shows recent media with links
   bot.command("debugmedia", async (ctx) => {
     const parts = ctx.message.text.trim().split(/\s+/);
-    const count = Math.max(1, Math.min(50, parseInt(parts[1] || "10", 10) || 10));
+    const count = Math.max(
+      1,
+      Math.min(50, parseInt(parts[1] || "10", 10) || 10)
+    );
 
-    const { default: RelayedMessage } = await import("../../models/RelayedMessage.js");
+    const { default: RelayedMessage } = await import(
+      "../../models/RelayedMessage.js"
+    );
     const items = await RelayedMessage.find({ type: { $ne: "text" } })
       .sort({ relayedAt: -1, _id: -1 })
       .limit(count);
@@ -109,9 +147,14 @@ export function register(bot) {
   // Debug list handler - compact list without links
   bot.command("debuglist", async (ctx) => {
     const parts = ctx.message.text.trim().split(/\s+/);
-    const count = Math.max(1, Math.min(50, parseInt(parts[1] || "10", 10) || 10));
+    const count = Math.max(
+      1,
+      Math.min(50, parseInt(parts[1] || "10", 10) || 10)
+    );
 
-    const { default: RelayedMessage } = await import("../../models/RelayedMessage.js");
+    const { default: RelayedMessage } = await import(
+      "../../models/RelayedMessage.js"
+    );
     const items = await RelayedMessage.find({ type: { $ne: "text" } })
       .sort({ relayedAt: -1, _id: -1 })
       .limit(count);
@@ -123,7 +166,9 @@ export function register(bot) {
     }
 
     // Batch fetch all aliases to avoid N+1 query
-    const userIds = [...new Set(items.map(it => it.userId || it.chatId).filter(Boolean))];
+    const userIds = [
+      ...new Set(items.map((it) => it.userId || it.chatId).filter(Boolean)),
+    ];
     const aliasMap = await getAllAliases(userIds);
 
     const header = escapeMarkdownV2(`📂 Latest ${items.length} media (list):`);
@@ -140,7 +185,9 @@ export function register(bot) {
         `msg=${it.messageId}`,
         it.albumId ? `album=${it.albumId}` : null,
         it.caption
-          ? `caption="${it.caption.substring(0, 60)}${it.caption.length > 60 ? "…" : ""}"`
+          ? `caption="${it.caption.substring(0, 60)}${
+              it.caption.length > 60 ? "…" : ""
+            }"`
           : null,
         it.fileId ? `(has file_id)` : `(no file_id)`,
         `at=${new Date(it.relayedAt).toLocaleString()}`,

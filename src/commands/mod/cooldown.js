@@ -17,18 +17,21 @@ export function register(bot) {
   bot.command(["cooldown", "cd"], async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
+      const isReply = ctx.message.reply_to_message != null;
 
-      // First arg is either alias or empty (if replying)
-      const aliasOrNothing = args[0];
+      let userId;
+      let remainingArgs;
 
-      // Try to resolve user (by alias or reply)
-      const userId = await resolveTargetUser(ctx, aliasOrNothing);
-
-      // Determine where duration and reason start
-      // If we used alias, args[1] might be duration, args[2+] might be reason
-      // If we used reply, args[0] might be duration, args[1+] might be reason
-      const hasAlias = aliasOrNothing && aliasOrNothing.trim().length > 0;
-      const remainingArgs = hasAlias ? args.slice(1) : args;
+      if (isReply) {
+        // Reply mode: all args are duration/reason
+        userId = await resolveTargetUser(ctx, null);
+        remainingArgs = args;
+      } else {
+        // Alias mode: first arg is alias, rest is duration/reason
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+        remainingArgs = args.slice(1);
+      }
 
       let durationMs = 5 * 60 * 1000; // Default: 5 minutes
       let reason = "";

@@ -1,10 +1,22 @@
-import { getAlias, banUser, unbanUser, findUserIdByAlias } from "../../users/index.js";
+import {
+  getAlias,
+  banUser,
+  unbanUser,
+  findUserIdByAlias,
+} from "../../users/index.js";
 import { parseDuration } from "../utils/parsers.js";
 import { escapeMarkdownV2 } from "../../utils/sanitize.js";
 import { resolveTargetUser } from "../utils/resolvers.js";
 import logger from "../../utils/logger.js";
-import { buildBanDurationSelector, formatDuration } from "../../utils/durationButtons.js";
-import { createPendingAction, completePendingAction, verifyInitiator } from "../../utils/actionState.js";
+import {
+  buildBanDurationSelector,
+  formatDuration,
+} from "../../utils/durationButtons.js";
+import {
+  createPendingAction,
+  completePendingAction,
+  verifyInitiator,
+} from "../../utils/actionState.js";
 
 export const meta = {
   commands: ["ban", "b", "unban", "ub"],
@@ -23,13 +35,16 @@ export function register(bot) {
   bot.command(["ban", "b"], async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
+      const isReply = ctx.message.reply_to_message != null;
 
-      if (args.length === 0) {
-        return ctx.reply("❌ Usage: /ban <alias(es)> [duration] or reply to message(s)");
+      // Allow reply mode without arguments (will show duration selector)
+      if (args.length === 0 && !isReply) {
+        return ctx.reply(
+          "❌ Usage: /ban <alias(es)|user_id> [duration] or reply to message"
+        );
       }
 
       // Check if replying to a message (single user ban)
-      const isReply = ctx.message.reply_to_message != null;
 
       if (isReply) {
         // Single user ban via reply
@@ -54,7 +69,9 @@ export function register(bot) {
 
         if (!durationMs) {
           return ctx.reply(
-            escapeMarkdownV2("❌ Invalid duration. Use formats like `10m`, `1h`, `2d` or omit duration to see button options."),
+            escapeMarkdownV2(
+              "❌ Invalid duration. Use formats like `10m`, `1h`, `2d` or omit duration to see button options."
+            ),
             { parse_mode: "MarkdownV2" }
           );
         }
@@ -64,15 +81,17 @@ export function register(bot) {
         const aliasEscaped = escapeMarkdownV2(aliasRaw);
         const duration = escapeMarkdownV2(durationStr);
 
-        logger.logModeration("ban", ctx.from.id, userId, { duration: durationStr });
+        logger.logModeration("ban", ctx.from.id, userId, {
+          duration: durationStr,
+        });
         return ctx.reply(`✅ Banned *${aliasEscaped}* for *${duration}*`, {
           parse_mode: "MarkdownV2",
         });
       }
 
       // Parse aliases and duration from args
-      // Duration pattern: ends with m/h/d or is a number
-      const durationPattern = /^\d+[mhd]?$/i;
+      // Duration pattern: must have unit letter (s/m/h/d) to avoid confusion with Telegram IDs
+      const durationPattern = /^\d+[smhd]$/i;
 
       let aliases = [];
       let durationStr = null;
@@ -86,16 +105,17 @@ export function register(bot) {
       }
 
       if (aliases.length === 0) {
-        return ctx.reply("❌ No aliases provided. Usage: /ban <alias(es)> [duration]");
+        return ctx.reply(
+          "❌ No aliases/IDs provided. Usage: /ban <alias(es)|user_id> [duration]"
+        );
       }
 
-      // Resolve all aliases to user IDs
+      // Resolve all aliases/IDs to user IDs (supports both aliases and Telegram IDs)
       const resolutions = await Promise.allSettled(
-        aliases.map(async (alias) => {
-          const userId = await findUserIdByAlias(alias);
-          if (!userId) throw new Error(`Alias "${alias}" not found`);
+        aliases.map(async (aliasOrId) => {
+          const userId = await resolveTargetUser(ctx, aliasOrId);
           const userAlias = await getAlias(userId);
-          return { alias, userId, resolvedAlias: userAlias };
+          return { alias: aliasOrId, userId, resolvedAlias: userAlias };
         })
       );
 
@@ -108,7 +128,9 @@ export function register(bot) {
         .map((r, i) => ({ alias: aliases[i], reason: r.reason.message }));
 
       if (successful.length === 0) {
-        const errors = failed.map((f) => `• ${f.alias}: ${f.reason}`).join("\n");
+        const errors = failed
+          .map((f) => `• ${f.alias}: ${f.reason}`)
+          .join("\n");
         return ctx.reply(`❌ Failed to resolve any users:\n${errors}`);
       }
 
@@ -116,7 +138,9 @@ export function register(bot) {
       let durationMs = parseDuration(durationStr);
       if (durationStr && !durationMs) {
         return ctx.reply(
-          escapeMarkdownV2("❌ Invalid duration. Use formats like `10m`, `1h`, `2d`."),
+          escapeMarkdownV2(
+            "❌ Invalid duration. Use formats like `10m`, `1h`, `2d`."
+          ),
           { parse_mode: "MarkdownV2" }
         );
       }
@@ -144,9 +168,12 @@ export function register(bot) {
         const durationEscaped = escapeMarkdownV2(duration);
 
         logger.logModeration("ban", ctx.from.id, userId, { duration });
-        return ctx.reply(`✅ Banned *${aliasEscaped}* for *${durationEscaped}*`, {
-          parse_mode: "MarkdownV2",
-        });
+        return ctx.reply(
+          `✅ Banned *${aliasEscaped}* for *${durationEscaped}*`,
+          {
+            parse_mode: "MarkdownV2",
+          }
+        );
       }
 
       // Multiple users - require confirmation
@@ -160,9 +187,12 @@ export function register(bot) {
       });
 
       const userList = successful.map((u) => `• ${u.resolvedAlias}`).join("\n");
-      const failedList = failed.length > 0
-        ? `\n\n⚠️ Failed to resolve:\n${failed.map((f) => `• ${f.alias}`).join("\n")}`
-        : "";
+      const failedList =
+        failed.length > 0
+          ? `\n\n⚠️ Failed to resolve:\n${failed
+              .map((f) => `• ${f.alias}`)
+              .join("\n")}`
+          : "";
 
       const duration = durationStr || "permanent";
       const message = `⚠️ Bulk Ban Confirmation\n\nYou are about to ban ${successful.length} user(s) for ${duration}:\n\n${userList}${failedList}\n\nConfirm this action?`;
@@ -171,17 +201,26 @@ export function register(bot) {
         reply_markup: {
           inline_keyboard: [
             [
-              { text: "✅ Confirm", callback_data: `confirm_${confirmationId}` },
+              {
+                text: "✅ Confirm",
+                callback_data: `confirm_${confirmationId}`,
+              },
               { text: "❌ Cancel", callback_data: `cancel_${confirmationId}` },
             ],
           ],
         },
       });
     } catch (err) {
-      logger.error("Ban command error", { error: err.message, stack: err.stack });
-      ctx.reply(escapeMarkdownV2(err.message || "❌ Could not process ban command."), {
-        parse_mode: "MarkdownV2",
+      logger.error("Ban command error", {
+        error: err.message,
+        stack: err.stack,
       });
+      ctx.reply(
+        escapeMarkdownV2(err.message || "❌ Could not process ban command."),
+        {
+          parse_mode: "MarkdownV2",
+        }
+      );
     }
   });
 
@@ -189,13 +228,16 @@ export function register(bot) {
   bot.command(["unban", "ub"], async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
+      const isReply = ctx.message.reply_to_message != null;
 
-      if (args.length === 0) {
-        return ctx.reply("❌ Usage: /unban <alias(es)> or reply to message");
+      // Allow reply mode without arguments
+      if (args.length === 0 && !isReply) {
+        return ctx.reply(
+          "❌ Usage: /unban <alias(es)|user_id> or reply to message"
+        );
       }
 
       // Check if replying to a message (single user unban)
-      const isReply = ctx.message.reply_to_message != null;
 
       if (isReply) {
         const userId = await resolveTargetUser(ctx, null);
@@ -208,16 +250,15 @@ export function register(bot) {
         });
       }
 
-      // Bulk unban by aliases
+      // Bulk unban by aliases/IDs
       const aliases = args;
 
-      // Resolve all aliases to user IDs
+      // Resolve all aliases/IDs to user IDs (supports both aliases and Telegram IDs)
       const resolutions = await Promise.allSettled(
-        aliases.map(async (alias) => {
-          const userId = await findUserIdByAlias(alias);
-          if (!userId) throw new Error(`Alias "${alias}" not found`);
+        aliases.map(async (aliasOrId) => {
+          const userId = await resolveTargetUser(ctx, aliasOrId);
           const userAlias = await getAlias(userId);
-          return { alias, userId, resolvedAlias: userAlias };
+          return { alias: aliasOrId, userId, resolvedAlias: userAlias };
         })
       );
 
@@ -230,7 +271,9 @@ export function register(bot) {
         .map((r, i) => ({ alias: aliases[i], reason: r.reason.message }));
 
       if (successful.length === 0) {
-        const errors = failed.map((f) => `• ${f.alias}: ${f.reason}`).join("\n");
+        const errors = failed
+          .map((f) => `• ${f.alias}: ${f.reason}`)
+          .join("\n");
         return ctx.reply(`❌ Failed to resolve any users:\n${errors}`);
       }
 
@@ -248,34 +291,44 @@ export function register(bot) {
 
       const failedUnbans = results
         .filter((r) => r.status === "rejected")
-        .map((r, i) => ({ alias: successful[i].resolvedAlias, reason: r.reason.message }));
+        .map((r, i) => ({
+          alias: successful[i].resolvedAlias,
+          reason: r.reason.message,
+        }));
 
-      let message = `✅ Successfully unbanned ${unbanned.length} user(s):\n${unbanned.map((a) => `• ${a}`).join("\n")}`;
+      let message = `✅ Successfully unbanned ${
+        unbanned.length
+      } user(s):\n${unbanned.map((a) => `• ${a}`).join("\n")}`;
 
       if (failedUnbans.length > 0) {
-        message += `\n\n❌ Failed to unban:\n${failedUnbans.map((f) => `• ${f.alias}: ${f.reason}`).join("\n")}`;
+        message += `\n\n❌ Failed to unban:\n${failedUnbans
+          .map((f) => `• ${f.alias}: ${f.reason}`)
+          .join("\n")}`;
       }
 
       if (failed.length > 0) {
-        message += `\n\n⚠️ Could not resolve:\n${failed.map((f) => `• ${f.alias}`).join("\n")}`;
+        message += `\n\n⚠️ Could not resolve:\n${failed
+          .map((f) => `• ${f.alias}`)
+          .join("\n")}`;
       }
 
-      logger.logModeration(
-        "bulk_unban",
-        ctx.from.id,
-        null,
-        {
-          count: unbanned.length,
-          userIds: successful.map((u) => u.userId),
-        }
-      );
+      logger.logModeration("bulk_unban", ctx.from.id, null, {
+        count: unbanned.length,
+        userIds: successful.map((u) => u.userId),
+      });
 
       ctx.reply(message);
     } catch (err) {
-      logger.error("Unban command error", { error: err.message, stack: err.stack });
-      ctx.reply(escapeMarkdownV2(err.message || "❌ Could not process unban command."), {
-        parse_mode: "MarkdownV2",
+      logger.error("Unban command error", {
+        error: err.message,
+        stack: err.stack,
       });
+      ctx.reply(
+        escapeMarkdownV2(err.message || "❌ Could not process unban command."),
+        {
+          parse_mode: "MarkdownV2",
+        }
+      );
     }
   });
 
@@ -304,7 +357,9 @@ export function register(bot) {
 
       // Verify the user clicking is the admin who initiated
       if (String(ctx.from.id) !== String(pending.adminId)) {
-        await ctx.answerCbQuery("❌ Only the initiating admin can confirm this action.");
+        await ctx.answerCbQuery(
+          "❌ Only the initiating admin can confirm this action."
+        );
         return;
       }
 
@@ -326,7 +381,9 @@ export function register(bot) {
         })
       );
 
-      const banned = results.filter((r) => r.status === "fulfilled").map((r) => r.value);
+      const banned = results
+        .filter((r) => r.status === "fulfilled")
+        .map((r) => r.value);
       const failedBans = results
         .filter((r) => r.status === "rejected")
         .map((r, i) => ({
@@ -334,27 +391,29 @@ export function register(bot) {
           reason: r.reason.message,
         }));
 
-      let message = `✅ Successfully banned ${banned.length} user(s) for ${pending.durationStr}:\n${banned.map((a) => `• ${a}`).join("\n")}`;
+      let message = `✅ Successfully banned ${banned.length} user(s) for ${
+        pending.durationStr
+      }:\n${banned.map((a) => `• ${a}`).join("\n")}`;
 
       if (failedBans.length > 0) {
-        message += `\n\n❌ Failed to ban:\n${failedBans.map((f) => `• ${f.alias}: ${f.reason}`).join("\n")}`;
+        message += `\n\n❌ Failed to ban:\n${failedBans
+          .map((f) => `• ${f.alias}: ${f.reason}`)
+          .join("\n")}`;
       }
 
-      logger.logModeration(
-        "bulk_ban",
-        pending.adminId,
-        null,
-        {
-          count: banned.length,
-          duration: pending.durationStr,
-          userIds: pending.users.map((u) => u.userId),
-        }
-      );
+      logger.logModeration("bulk_ban", pending.adminId, null, {
+        count: banned.length,
+        duration: pending.durationStr,
+        userIds: pending.users.map((u) => u.userId),
+      });
 
       pendingBulkBans.delete(confirmationId);
       await ctx.editMessageText(message);
     } catch (err) {
-      logger.error("Bulk ban callback error", { error: err.message, stack: err.stack });
+      logger.error("Bulk ban callback error", {
+        error: err.message,
+        stack: err.stack,
+      });
       await ctx.answerCbQuery("❌ An error occurred.");
       await ctx.editMessageText(`❌ Error processing bulk ban: ${err.message}`);
     }
@@ -379,13 +438,18 @@ export function register(bot) {
 
       const durationStr = formatDuration(durationSeconds);
       await ctx.answerCbQuery(`✅ Banned ${targetAlias} for ${durationStr}`);
-      logger.logModeration("ban", initiatorId, targetId, { duration: durationSeconds });
+      logger.logModeration("ban", initiatorId, targetId, {
+        duration: durationSeconds,
+      });
 
       const aliasEscaped = escapeMarkdownV2(targetAlias);
       const durationEscaped = escapeMarkdownV2(durationStr);
-      await ctx.editMessageText(`✅ Banned *${aliasEscaped}* for *${durationEscaped}*`, {
-        parse_mode: "MarkdownV2",
-      });
+      await ctx.editMessageText(
+        `✅ Banned *${aliasEscaped}* for *${durationEscaped}*`,
+        {
+          parse_mode: "MarkdownV2",
+        }
+      );
     } catch (err) {
       logger.error("Ban duration callback error", {
         error: err.message,

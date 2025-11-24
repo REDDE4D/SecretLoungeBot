@@ -16,9 +16,19 @@ export function register(bot) {
   const handler = async (ctx) => {
     try {
       const args = ctx.message.text.trim().split(" ").slice(1);
-      const alias = args[0];
+      const isReply = ctx.message.reply_to_message != null;
 
-      const userId = await resolveTargetUser(ctx, alias);
+      let userId;
+
+      if (isReply) {
+        // Reply mode: no alias needed
+        userId = await resolveTargetUser(ctx, null);
+      } else {
+        // Alias mode: first arg is alias
+        const alias = args[0];
+        userId = await resolveTargetUser(ctx, alias);
+      }
+
       const result = await setRole(userId, "whitelist");
       const aliasRaw = await getAlias(userId);
 
