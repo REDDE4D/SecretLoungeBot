@@ -116,8 +116,8 @@ export async function relayStandardMessage(
   const senderRole = await getRole(senderId);
   let roleBadge = "";
 
-  // Only show badges for privileged roles (admin, mod, whitelist)
-  if (senderRole && ["admin", "mod", "whitelist"].includes(senderRole)) {
+  // Only show badges for privileged roles (owner, admin, mod, whitelist)
+  if (senderRole && ["owner", "admin", "mod", "whitelist"].includes(senderRole)) {
     const roleEmoji = await getSystemRoleEmoji(senderRole);
     if (roleEmoji) {
       roleBadge = ` ${roleEmoji}`;

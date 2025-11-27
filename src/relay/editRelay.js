@@ -42,8 +42,8 @@ export async function handleEditRelay(ctx) {
     const editorRole = await getRole(editorId);
     let roleBadge = "";
 
-    // Only show badges for privileged roles (admin, mod, whitelist)
-    if (editorRole && ["admin", "mod", "whitelist"].includes(editorRole)) {
+    // Only show badges for privileged roles (owner, admin, mod, whitelist)
+    if (editorRole && ["owner", "admin", "mod", "whitelist"].includes(editorRole)) {
       const roleEmoji = await getSystemRoleEmoji(editorRole);
       if (roleEmoji) {
         roleBadge = ` ${roleEmoji}`;
