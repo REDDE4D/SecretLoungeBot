@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Comprehensive Achievements System**
+
   - New `Achievement` model defining 30+ achievements across 6 categories (messaging, social, tenure, milestone, special, role)
   - New `UserAchievement` model tracking unlocked achievements per user
   - Achievement tiers: bronze, silver, gold, platinum, diamond with point values
@@ -60,6 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic initialization of default achievements on startup
 
 - **Enhanced Warnings System**
+
   - New `Warning` model for granular warning tracking with individual records
   - Each warning now includes: issuer ID, issuer alias, reason, timestamp
   - Warnings stored as separate documents instead of just a counter
@@ -76,6 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Warning count badge in user management interface
 
 - **Role Change Notifications**
+
   - New `roleNotifications.js` utility for user-facing role notifications
   - Automatic Telegram notifications when users receive roles
   - Automatic Telegram notifications when users lose roles
@@ -101,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Enhanced /profile Command**
+
   - Now displays achievements earned by user
   - Shows total achievement points
   - Displays achievement progress percentage
@@ -109,6 +113,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better formatting and organization of profile information
 
 - **Improved Moderation Commands**
+
   - `/warn` command now creates Warning documents instead of just incrementing counter
   - Warning records include issuer alias and reason
   - `/clearwarns` command now removes all Warning documents for user
@@ -117,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Moderation service now supports warnings CRUD operations
 
 - **Role Assignment Improvements**
+
   - `/promote`, `/demote`, `/whitelist` commands now notify users
   - Role changes trigger automatic notifications to affected users
   - Custom role assignments send notifications with permissions list
@@ -125,6 +131,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Error handling for blocked users in role notifications
 
 - **Dashboard Moderation Enhancements**
+
   - Moderation controller expanded with warnings endpoints
   - Batch controller updated with warnings support
   - Moderation service includes full warnings CRUD
@@ -133,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Improved error handling in moderation services
 
 - **User Management Updates**
+
   - Users index now supports Warning model queries
   - User service includes warnings data in user objects
   - Enhanced user details with warnings information
@@ -148,12 +156,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Warning System Consistency**
+
   - Warnings now persistently tracked with full audit trail
   - No more loss of warning context when clearing warnings
   - Better visibility into warning history for moderators
   - Accurate warning counts with database-backed tracking
 
 - **Role Assignment Feedback**
+
   - Users now immediately know when their roles change
   - No more silent role changes without user notification
   - Clear communication of permission changes
@@ -170,6 +180,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Comprehensive Documentation System**
+
   - Complete `docs/` directory with 130KB+ of detailed documentation
   - `docs/COMMANDS.md` - Full reference for 50+ bot commands with examples and parameters
   - `docs/MODELS.md` - Detailed database schemas for all 20+ models with field descriptions
@@ -179,6 +190,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cleaner project structure with separation of concerns
 
 - **In-App Notification System**
+
   - Full notification infrastructure for dashboard users
   - `Notification` model with type, title, message, priority, read status, and TTL
   - `NotificationPreferences` model for per-user notification settings
@@ -193,6 +205,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Sound and desktop notification preferences
 
 - **Internal Bot-to-Dashboard API**
+
   - New `/api/internal` routes for bot to trigger dashboard events
   - Internal endpoints for emitting: reports, moderation actions, spam alerts, user join/leave, settings changes, audit logs
   - Secure internal communication channel for real-time event propagation
@@ -200,6 +213,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - WebSocket emission integration with bot actions
 
 - **System Health Monitoring**
+
   - System controller and service for monitoring bot health
   - `/api/system/health` endpoint returning bot status, memory, uptime
   - `/api/system/stats` endpoint for comprehensive system statistics
@@ -207,6 +221,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Memory usage tracking and reporting
 
 - **Bot Restart Command**
+
   - `/restart` and `/reload` owner-only commands for restarting bot via PM2
   - Graceful restart with user notification before process reload
   - Fallback to process exit if PM2 reload fails
@@ -214,12 +229,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 2-second delay to ensure notification delivery before restart
 
 - **Database Migration System**
+
   - New `src/migrations/` directory for database schema migrations
   - `createSystemRoles.js` migration for populating system roles on startup
   - Automatic migration execution during bot initialization
   - Support for future schema changes and data migrations
 
 - **Enhanced User Management**
+
   - User ban notifications sent via Telegram when user is banned
   - User mute notifications sent via Telegram when user is muted
   - Improved audit logging with moderator alias included
@@ -238,6 +255,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Permission System Improvements**
+
   - Enhanced RBAC middleware with better error handling
   - Permission checks now include custom role validation
   - 5-minute caching for permission checks to reduce database load
@@ -245,6 +263,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better separation between system roles and custom roles
 
 - **Socket Service Enhancements**
+
   - Extended WebSocket events for notifications and system health
   - Better connection management with keepalive pings
   - Improved error handling for socket emissions
@@ -252,6 +271,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - More granular event types for better real-time updates
 
 - **Service Layer Improvements**
+
   - User service now includes ban/mute notifications
   - Auth service improved with better token handling
   - Moderation service enhanced with notification creation
@@ -259,6 +279,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Socket service expanded with more event types
 
 - **Dashboard API Routes**
+
   - Reorganized route structure for better maintainability
   - New internal routes for bot-to-dashboard communication
   - Notification routes for notification management
@@ -266,6 +287,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Better route organization and separation of concerns
 
 - **Link Detection Improvements**
+
   - Enhanced URL pattern matching
   - Better handling of edge cases in link spam detection
   - Improved performance for link extraction
@@ -279,6 +301,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Audit Log Schema Consistency**
+
   - Standardized audit log field names across all services
   - Changed `category` to `action` for consistency
   - Changed `details` to `reason` for better clarity
@@ -286,11 +309,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - All audit log entries now include moderator alias
 
 - **Dashboard Request Format Mismatches**
+
   - Fixed inconsistent request/response formats between frontend and API
   - Standardized API response structures
   - Better error response formatting
 
 - **Tab Persistence Issues**
+
   - Fixed settings page tab persistence after saving
   - Applied tab persistence fix to all dashboard pages with tabs
   - Better state management for tabbed interfaces
@@ -307,7 +332,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Editable Standard Roles with Visual Badges**
   - System roles (Admin, Mod, Whitelist, Regular) now stored in database and fully editable
   - Customizable role emojis displayed after user alias in chat messages
-  - Emoji-only badges for privileged roles (admin 👑, mod 🛡️, whitelist ⭐)
+  - Emoji-only badges for privileged roles (owner 🔱, admin 👑, mod 🛡️, whitelist ⭐)
   - Role emoji picker in dashboard with common emojis and custom emoji support
   - System Role Edit Dialog for managing emoji, color, permissions, and descriptions
   - Owner role protected from modifications for security
@@ -332,6 +357,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Blocked User Detection & Management System**
+
   - Automatic detection when users block the bot (403 Forbidden errors)
   - `blockedBot` and `blockedAt` fields added to User model
   - Automatic lobby removal when user blocks the bot
@@ -341,6 +367,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Real-time notifications to dashboard when users block bot
 
 - **Dashboard Live Logging System**
+
   - New WebSocket event types: `bot:log`, `bot:error`, `relay:failure`, `user:blocked`, `system:health`
   - Dashboard API logging endpoint `/api/logs/event` for bot-to-dashboard communication
   - `BotLog` model with TTL (30-day auto-expiration)
@@ -351,6 +378,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Automatic log cleanup with configurable retention period
 
 - **Message Length Handling**
+
   - Message splitter utility for handling Telegram's 4096 character limit
   - `splitLongMessage()` function with smart word boundary detection
   - `sendLongMessage()` wrapper for automatic message splitting
@@ -367,12 +395,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Enhanced Delete Command Feedback**
+
   - Detailed deletion statistics: successful, blocked, not found, other errors
   - Per-user error tracking during message deletion
   - Admin receives comprehensive report of deletion outcomes
   - Improved notification error handling
 
 - **Improved Relay Error Handling**
+
   - `standardMessage.js` now uses centralized error handler
   - `editRelay.js` now tracks and reports blocked users
   - All relay failures logged to dashboard with context
@@ -387,6 +417,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Unhandled Promise Rejections**
+
   - Fixed "message is too long" unhandled rejections
   - Improved error catching in relay loops
   - Better async error handling in delete/announce/pins commands

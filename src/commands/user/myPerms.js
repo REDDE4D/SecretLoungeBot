@@ -1,23 +1,25 @@
-import { getUserMeta } from '../../users/index.js';
-import { escapeHTML } from '../../utils/sanitize.js';
+import { getUserMeta } from "../../users/index.js";
+import { escapeHTML } from "../../utils/sanitize.js";
 
 export const meta = {
-  commands: ['myperms', 'mypermissions'],
-  category: 'user',
+  commands: ["myperms", "mypermissions"],
+  category: "user",
   roleRequired: null,
-  description: 'Check your permissions',
-  usage: '/myperms',
+  description: "Check your permissions",
+  usage: "/myperms",
   showInMenu: true,
 };
 
 export function register(bot) {
-  bot.command(['myperms', 'mypermissions'], async (ctx) => {
+  bot.command(["myperms", "mypermissions"], async (ctx) => {
     try {
       const userId = ctx.from.id;
       const user = await getUserMeta(userId);
 
       if (!user) {
-        return ctx.reply('❌ You are not registered. Use /register to get started.');
+        return ctx.reply(
+          "❌ You are not registered. Use /register to get started."
+        );
       }
 
       const permissions = [];
@@ -25,22 +27,34 @@ export function register(bot) {
       // Role
       if (user.role) {
         const roleEmoji = {
-          admin: '👑',
-          mod: '🛡️',
-          whitelist: '⭐',
+          owner: "🔱",
+          admin: "👑",
+          mod: "🛡️",
+          whitelist: "⭐",
         };
-        permissions.push(`<b>Role:</b> ${roleEmoji[user.role] || ''} ${user.role.charAt(0).toUpperCase() + user.role.slice(1)}`);
+        permissions.push(
+          `<b>Role:</b> ${roleEmoji[user.role] || ""} ${
+            user.role.charAt(0).toUpperCase() + user.role.slice(1)
+          }`
+        );
       } else {
-        permissions.push('<b>Role:</b> Regular User');
+        permissions.push("<b>Role:</b> Regular User");
       }
 
       // Link posting
-      const canPostLinks = user.role === 'admin' || user.role === 'mod' || user.canPostLinks === true;
-      permissions.push(`<b>Can post links:</b> ${canPostLinks ? '✅ Yes' : '❌ No'}`);
+      const canPostLinks =
+        user.role === "admin" ||
+        user.role === "mod" ||
+        user.canPostLinks === true;
+      permissions.push(
+        `<b>Can post links:</b> ${canPostLinks ? "✅ Yes" : "❌ No"}`
+      );
 
       // Media posting
       const canPostMedia = !user.mediaRestricted;
-      permissions.push(`<b>Can post media:</b> ${canPostMedia ? '✅ Yes' : '❌ No'}`);
+      permissions.push(
+        `<b>Can post media:</b> ${canPostMedia ? "✅ Yes" : "❌ No"}`
+      );
 
       // Muted status
       if (user.mutedUntil && new Date(user.mutedUntil) > new Date()) {
@@ -50,16 +64,16 @@ export function register(bot) {
 
       const message = [
         `👤 <b>Your Permissions</b>`,
-        '',
-        `<b>Alias:</b> ${escapeHTML(user.alias || 'Not set')}`,
-        '',
+        "",
+        `<b>Alias:</b> ${escapeHTML(user.alias || "Not set")}`,
+        "",
         ...permissions,
-      ].join('\n');
+      ].join("\n");
 
       await ctx.replyWithHTML(message);
     } catch (err) {
-      console.error('Error fetching permissions:', err);
-      await ctx.reply('❌ Error fetching your permissions.');
+      console.error("Error fetching permissions:", err);
+      await ctx.reply("❌ Error fetching your permissions.");
     }
   });
 }

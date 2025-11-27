@@ -61,10 +61,10 @@ export async function notifyRoleChange(userId, options = {}) {
     } else if (newRole || oldRole) {
       // System role change
       const roleEmojis = {
-        owner: "👑",
-        admin: "⭐",
+        owner: "🔱",
+        admin: "👑",
         mod: "🛡️",
-        whitelist: "✅",
+        whitelist: "⭐",
       };
 
       const roleNames = {
@@ -99,7 +99,10 @@ export async function notifyRoleChange(userId, options = {}) {
       }
     } else {
       // No valid role change detected
-      console.warn("[RoleNotifications] No valid role change detected:", options);
+      console.warn(
+        "[RoleNotifications] No valid role change detected:",
+        options
+      );
       return false;
     }
 

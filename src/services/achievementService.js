@@ -407,7 +407,10 @@ export async function initializeAchievements() {
         { upsert: true, new: true }
       );
     } catch (err) {
-      console.error(`Failed to initialize achievement ${achievement.achievementId}:`, err.message);
+      console.error(
+        `Failed to initialize achievement ${achievement.achievementId}:`,
+        err.message
+      );
     }
   }
 
@@ -458,7 +461,11 @@ export async function awardAchievement(userId, achievementId, notify = true) {
     await userAchievement.save();
   }
 
-  console.log(`🏆 Achievement unlocked: ${userId} earned "${achievement?.name || achievementId}"`);
+  console.log(
+    `🏆 Achievement unlocked: ${userId} earned "${
+      achievement?.name || achievementId
+    }"`
+  );
 
   return achievement;
 }
@@ -482,9 +489,14 @@ async function notifyAchievement(userId, achievement) {
     await bot.telegram.sendMessage(userId, message, { parse_mode: "HTML" });
   } catch (err) {
     if (err.response?.error_code === 403) {
-      console.log(`User ${userId} has blocked the bot, skipping achievement notification`);
+      console.log(
+        `User ${userId} has blocked the bot, skipping achievement notification`
+      );
     } else {
-      console.error(`Failed to send achievement notification to ${userId}:`, err.message);
+      console.error(
+        `Failed to send achievement notification to ${userId}:`,
+        err.message
+      );
     }
   }
 }
@@ -512,7 +524,9 @@ export async function checkAchievements(userId) {
   const totalMediaMessages = activity.totalMediaMessages || 0;
   const totalTextMessages = activity.totalTextMessages || 0;
   const daysInLobby = activity.firstSeen
-    ? Math.floor((Date.now() - activity.firstSeen.getTime()) / (1000 * 60 * 60 * 24))
+    ? Math.floor(
+        (Date.now() - activity.firstSeen.getTime()) / (1000 * 60 * 60 * 24)
+      )
     : 0;
   const karma = user.karma || 0;
 
@@ -522,7 +536,8 @@ export async function checkAchievements(userId) {
     { $match: { giverId: userId } },
     { $group: { _id: null, total: { $sum: { $abs: "$amount" } } } },
   ]);
-  const karmaGiven = karmaGivenResult.length > 0 ? karmaGivenResult[0].total : 0;
+  const karmaGiven =
+    karmaGivenResult.length > 0 ? karmaGivenResult[0].total : 0;
 
   // Get all achievements
   const allAchievements = await Achievement.find({}).lean();
@@ -540,11 +555,20 @@ export async function checkAchievements(userId) {
 
     if (condition.totalMessages && totalMessages >= condition.totalMessages) {
       shouldAward = true;
-    } else if (condition.totalReplies && totalReplies >= condition.totalReplies) {
+    } else if (
+      condition.totalReplies &&
+      totalReplies >= condition.totalReplies
+    ) {
       shouldAward = true;
-    } else if (condition.totalMediaMessages && totalMediaMessages >= condition.totalMediaMessages) {
+    } else if (
+      condition.totalMediaMessages &&
+      totalMediaMessages >= condition.totalMediaMessages
+    ) {
       shouldAward = true;
-    } else if (condition.totalTextMessages && totalTextMessages >= condition.totalTextMessages) {
+    } else if (
+      condition.totalTextMessages &&
+      totalTextMessages >= condition.totalTextMessages
+    ) {
       shouldAward = true;
     } else if (condition.daysInLobby && daysInLobby >= condition.daysInLobby) {
       shouldAward = true;
@@ -609,7 +633,10 @@ export async function getUserAchievements(userId) {
  */
 export async function getUserAchievementPoints(userId) {
   const achievements = await getUserAchievements(userId);
-  return achievements.reduce((sum, achievement) => sum + (achievement.points || 0), 0);
+  return achievements.reduce(
+    (sum, achievement) => sum + (achievement.points || 0),
+    0
+  );
 }
 
 /**
@@ -626,6 +653,9 @@ export async function getAchievementStats(userId) {
     earned: achievements.length,
     total: totalAchievements,
     points: await getUserAchievementPoints(userId),
-    percentage: totalAchievements > 0 ? Math.round((achievements.length / totalAchievements) * 100) : 0,
+    percentage:
+      totalAchievements > 0
+        ? Math.round((achievements.length / totalAchievements) * 100)
+        : 0,
   };
 }
